@@ -1,0 +1,300 @@
+<!--
+  pages/createReview.html
+  ═══════════════════════
+  STATIC REFERENCE — not loaded directly in the SPA.
+
+  This page allows an authenticated user to submit a new ranking for a study spot.
+  All fields marked (*) are required.
+
+  TODO (Backend team):
+  - POST /api/rankings — create a new ranking
+      Body: multipart/form-data (to support media upload)
+        spotName   string   required
+        category   enum     required: Libraries | Cafes | Outdoors | Other
+        quietness  int 1–5  required
+        restroom   int 1–5  required
+        wifi       int 1–5  required
+        outlets    int 1–5  required
+        crowdness  int 1–5  required
+        seating    int 1–5  required
+        hours      string   required
+        media      file[]   required (min 1 photo)
+        notes      string   optional
+
+  - GET /api/spots?q=... — autocomplete the spot name input
+  - On success: redirect to the new ranking or back to the feed
+  - On error 422: return field-level validation errors and display inline
+  - Media: upload files to S3/R2 first; store returned URLs in ranking record
+-->
+
+<main id="main-content" class="content-container">
+
+  <a href="feed.html" class="back-link" aria-label="Go back">← Back</a>
+
+  <div class="page-header">
+    <h1 class="page-header__title">Rate a Study Spot</h1>
+    <p class="page-header__subtitle">Share your experience with the community</p>
+  </div>
+
+  <div class="create-review-form">
+    <!--
+      action="..." method="POST" — fill in your backend route
+      enctype="multipart/form-data" is required for file uploads
+      TODO: Add CSRF token as a hidden input
+    -->
+    <form
+      id="review-form"
+      action="/api/rankings"
+      method="POST"
+      enctype="multipart/form-data"
+      novalidate>
+
+      <!-- ── SECTION 1: Location ────────────────────────── -->
+      <div class="form-section">
+        <p class="form-section__title">Location</p>
+
+        <!-- Spot Name -->
+        <div class="form-group">
+          <label class="form-label" for="spot-name">
+            Study Spot Name <span class="required" aria-label="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="spot-name"
+            name="spotName"
+            class="form-input"
+            placeholder="e.g. Main Street Library"
+            required
+            autocomplete="off"
+            aria-describedby="spot-name-hint spot-name-error" />
+          <span id="spot-name-hint" style="font-size:var(--text-xs); color:var(--color-text-tertiary);">
+            Start typing to search existing spots, or add a new one.
+            <!-- TODO: Autocomplete dropdown from GET /api/spots?q=... -->
+          </span>
+          <!-- TODO: Backend validation error: <span id="spot-name-error" role="alert" style="color:var(--color-danger); font-size:var(--text-xs);">{{ errors.spotName }}</span> -->
+        </div>
+
+        <!-- Category -->
+        <div class="form-group">
+          <fieldset>
+            <legend class="form-label">
+              Category <span class="required" aria-label="required">*</span>
+            </legend>
+            <div class="radio-pills" id="category-pills">
+              <div class="radio-pill">
+                <input type="radio" name="category" id="cat-libraries" value="Libraries" checked />
+                <label for="cat-libraries">📚 Libraries</label>
+              </div>
+              <div class="radio-pill">
+                <input type="radio" name="category" id="cat-cafes" value="Cafes" />
+                <label for="cat-cafes">☕ Cafes</label>
+              </div>
+              <div class="radio-pill">
+                <input type="radio" name="category" id="cat-outdoors" value="Outdoors" />
+                <label for="cat-outdoors">🌿 Outdoors</label>
+              </div>
+              <div class="radio-pill">
+                <input type="radio" name="category" id="cat-other" value="Other" />
+                <label for="cat-other">📍 Other</label>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+
+        <!-- Hours Open -->
+        <div class="form-group">
+          <label class="form-label" for="hours-open">
+            Hours Open <span class="required" aria-label="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="hours-open"
+            name="hours"
+            class="form-input"
+            placeholder="e.g. 8am – 10pm, or 24 hours"
+            required
+            aria-describedby="hours-error" />
+          <!-- TODO: <span id="hours-error" role="alert">{{ errors.hours }}</span> -->
+        </div>
+      </div>
+
+      <!-- ── SECTION 2: Ratings ─────────────────────────── -->
+      <div class="form-section">
+        <p class="form-section__title">
+          Ratings <span class="required" aria-label="required">*</span>
+        </p>
+        <div class="ratings-grid" id="ratings-grid">
+
+          <!-- Each slider outputs 1–5 -->
+
+          <div class="slider-field">
+            <label class="slider-field__label" for="slider-quietness">Quietness</label>
+            <input
+              type="range"
+              id="slider-quietness"
+              name="quietness"
+              class="slider-field__range"
+              min="1" max="5" step="1" value="3"
+              aria-valuemin="1" aria-valuemax="5" aria-valuenow="3" />
+            <span class="slider-field__value" id="val-quietness" aria-live="polite">3</span>
+          </div>
+
+          <div class="slider-field">
+            <label class="slider-field__label" for="slider-restroom">Restroom</label>
+            <input
+              type="range"
+              id="slider-restroom"
+              name="restroom"
+              class="slider-field__range"
+              min="1" max="5" step="1" value="3"
+              aria-valuemin="1" aria-valuemax="5" aria-valuenow="3" />
+            <span class="slider-field__value" id="val-restroom" aria-live="polite">3</span>
+          </div>
+
+          <div class="slider-field">
+            <label class="slider-field__label" for="slider-wifi">Wifi</label>
+            <input
+              type="range"
+              id="slider-wifi"
+              name="wifi"
+              class="slider-field__range"
+              min="1" max="5" step="1" value="3"
+              aria-valuemin="1" aria-valuemax="5" aria-valuenow="3" />
+            <span class="slider-field__value" id="val-wifi" aria-live="polite">3</span>
+          </div>
+
+          <div class="slider-field">
+            <label class="slider-field__label" for="slider-outlets">Outlets</label>
+            <input
+              type="range"
+              id="slider-outlets"
+              name="outlets"
+              class="slider-field__range"
+              min="1" max="5" step="1" value="3"
+              aria-valuemin="1" aria-valuemax="5" aria-valuenow="3" />
+            <span class="slider-field__value" id="val-outlets" aria-live="polite">3</span>
+          </div>
+
+          <div class="slider-field">
+            <label class="slider-field__label" for="slider-crowdness">Crowdness</label>
+            <input
+              type="range"
+              id="slider-crowdness"
+              name="crowdness"
+              class="slider-field__range"
+              min="1" max="5" step="1" value="3"
+              aria-valuemin="1" aria-valuemax="5" aria-valuenow="3" />
+            <span class="slider-field__value" id="val-crowdness" aria-live="polite">3</span>
+          </div>
+
+          <div class="slider-field">
+            <label class="slider-field__label" for="slider-seating">Amount of Seating</label>
+            <input
+              type="range"
+              id="slider-seating"
+              name="seating"
+              class="slider-field__range"
+              min="1" max="5" step="1" value="3"
+              aria-valuemin="1" aria-valuemax="5" aria-valuenow="3" />
+            <span class="slider-field__value" id="val-seating" aria-live="polite">3</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── SECTION 3: Media ──────────────────────────── -->
+      <div class="form-section">
+        <p class="form-section__title">
+          Photos &amp; Videos <span class="required" aria-label="required">*</span>
+        </p>
+
+        <label
+          class="upload-zone"
+          for="media-upload"
+          id="upload-zone"
+          aria-describedby="upload-hint">
+          <span class="upload-zone__icon" aria-hidden="true">📎</span>
+          <span class="upload-zone__text">Tap or drag to upload photos or videos</span>
+          <span class="upload-zone__hint" id="upload-hint">JPG, PNG, MP4 · up to 50MB each</span>
+          <span class="upload-zone__count" id="upload-count" aria-live="polite"></span>
+          <input
+            type="file"
+            id="media-upload"
+            name="media"
+            multiple
+            accept="image/*,video/*"
+            class="sr-only"
+            aria-label="Upload photos or videos"
+            required />
+          <!--
+            TODO: On file selection:
+              1. Show thumbnails in #media-preview using URL.createObjectURL()
+              2. Upload each file to your object storage (S3/R2) via presigned URL
+              3. Store the returned public URL(s) in hidden inputs for the form submit
+          -->
+        </label>
+
+        <!-- Thumbnail preview strip (populated by JS) -->
+        <div class="media-preview-strip" id="media-preview" aria-label="Uploaded media previews"></div>
+        <!--
+          TODO: Each preview item:
+          <div class="media-preview-item" role="img" aria-label="{{ filename }}">
+            <img src="{{ objectURL }}" alt="{{ filename }}" />
+            <button class="media-preview-item__remove" type="button" aria-label="Remove {{ filename }}">✕</button>
+          </div>
+        -->
+      </div>
+
+      <!-- ── SECTION 4: Notes ──────────────────────────── -->
+      <div class="form-section">
+        <p class="form-section__title">Additional Notes</p>
+
+        <div class="form-group">
+          <label class="form-label" for="notes">
+            Notes
+            <span style="font-weight:var(--weight-regular); color:var(--color-text-tertiary); margin-left:var(--space-2);">optional</span>
+          </label>
+          <textarea
+            id="notes"
+            name="notes"
+            class="form-textarea"
+            placeholder="Anything else worth knowing — parking, vibe, best times to visit…"
+            rows="3"
+            maxlength="500"></textarea>
+        </div>
+      </div>
+
+      <!-- ── Actions ───────────────────────────────────── -->
+      <div class="form-actions">
+        <a href="feed.html" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary btn-lg">
+          Submit Ranking
+          <!--
+            TODO:
+            - Disable this button while the POST request is in-flight
+            - Show a loading spinner inside the button
+            - Re-enable on error; display server error message above button
+          -->
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</main>
+
+<!--
+  Minimal inline script for slider live-update.
+  In the SPA this is handled by app.js.
+  In SSR, include this or move to a dedicated script file.
+-->
+<script>
+  document.getElementById('ratings-grid')?.addEventListener('input', function(e) {
+    if (e.target.type !== 'range') return;
+    const valEl = document.getElementById('val-' + e.target.name);
+    if (valEl) {
+      valEl.textContent = e.target.value;
+      e.target.setAttribute('aria-valuenow', e.target.value);
+    }
+  });
+</script>

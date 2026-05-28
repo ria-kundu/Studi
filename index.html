@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="StudySpot — Discover and rank the best study areas around you." />
+  <meta name="theme-color" content="#4f6ef7" />
+  <title>StudySpot</title>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/nav.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+
+  <!--
+    TODO (Backend team):
+    - Replace this static HTML shell with your server-side template (Handlebars, Jinja2, Pug, etc.)
+    - Inject authenticated user data into a <script> block or data attributes for app.js to consume
+    - Add a <meta name="csrf-token"> tag for CSRF protection on POST requests
+    - Serve this file from your Express/Fastify/Next.js/Remix route handler
+  -->
+</head>
+<body>
+
+  <!-- Skip navigation link for keyboard/screen-reader users -->
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- ═══════════════════════════════════════════════════════
+       NAVIGATION BAR (fixed, always visible)
+  ════════════════════════════════════════════════════════ -->
+  <header class="navbar" role="banner">
+    <div class="navbar__inner">
+
+      <!-- Logo -->
+      <a href="#" class="navbar__logo" id="nav-logo" aria-label="StudySpot home">
+        <span class="navbar__logo-icon" aria-hidden="true">📍</span>
+        <span class="navbar__logo-wordmark">Study<span>Spot</span></span>
+      </a>
+
+      <!-- Desktop Tab Navigation -->
+      <nav class="navbar__tabs" aria-label="Main navigation">
+        <button
+          class="navbar__tab"
+          data-nav-tab="feed"
+          aria-current="page"
+          aria-label="Home — recent rankings">
+          Home
+        </button>
+        <button
+          class="navbar__tab"
+          data-nav-tab="search"
+          aria-current="false"
+          aria-label="Search study spots">
+          Search
+        </button>
+        <button
+          class="navbar__tab"
+          data-nav-tab="profile"
+          aria-current="false"
+          aria-label="Your profile">
+          Profile
+        </button>
+      </nav>
+
+      <!-- Right side: User + Logout -->
+      <div class="navbar__right">
+        <button
+          class="navbar__user-btn"
+          id="nav-profile-btn"
+          aria-label="View your profile, Maya Chen">
+          <!--
+            TODO: Populate user initials and name from authenticated session
+            e.g. server renders:  <div class="avatar avatar-md">{{ user.initials }}</div>
+          -->
+          <div class="avatar avatar-md" aria-hidden="true">MC</div>
+          <span class="navbar__user-name">Maya Chen</span>
+        </button>
+        <button
+          class="navbar__logout"
+          id="nav-logout"
+          aria-label="Log out">
+          Logout
+          <!-- TODO: POST /api/auth/logout then redirect to login page -->
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile bottom tab row (rendered inside the fixed header) -->
+    <nav class="navbar__mobile-tabs" aria-label="Mobile navigation" role="tablist">
+      <button
+        class="navbar__mobile-tab"
+        data-nav-tab="feed"
+        role="tab"
+        aria-selected="true"
+        aria-controls="app">
+        <span class="navbar__mobile-tab__icon" aria-hidden="true">🏠</span>
+        Home
+      </button>
+      <button
+        class="navbar__mobile-tab"
+        data-nav-tab="search"
+        role="tab"
+        aria-selected="false"
+        aria-controls="app">
+        <span class="navbar__mobile-tab__icon" aria-hidden="true">🔍</span>
+        Search
+      </button>
+      <button
+        class="navbar__mobile-tab"
+        data-nav-tab="profile"
+        role="tab"
+        aria-selected="false"
+        aria-controls="app">
+        <span class="navbar__mobile-tab__icon" aria-hidden="true">👤</span>
+        Profile
+      </button>
+    </nav>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PAGE MOUNT POINT — app.js renders all pages here
+  ════════════════════════════════════════════════════════ -->
+  <div class="page-wrapper">
+    <div id="app" role="main">
+      <!--
+        app.js renders the current page's HTML into this element.
+
+        Pages:
+          feed          — /pages/feed.html          (recent rankings)
+          profile       — /pages/profile.html       (current user's profile)
+          userProfile   — /pages/userProfile.html   (another user's profile)
+          search        — /pages/search.html        (search + AI chatbot)
+          createReview  — /pages/createReview.html  (new review form)
+          spotDetail    — /pages/spotDetail.html    (all reviews for one spot)
+
+        See js/app.js → render() for the SPA router.
+        Each page's HTML template lives in /pages/ for reference.
+
+        TODO (Backend team): You can either:
+          A) Keep this SPA approach — app.js fetches data via REST and renders HTML.
+          B) Switch to server-side rendering — each page in /pages/ becomes a server
+             template; remove app.js routing and replace with your router.
+      -->
+      <noscript>
+        <p style="text-align:center; padding:4rem 2rem; color:#6b6860; font-family:sans-serif;">
+          StudySpot requires JavaScript to run. Please enable JavaScript in your browser.
+        </p>
+      </noscript>
+    </div>
+  </div>
+
+  <!-- Toast notification container -->
+  <div
+    class="toast-container"
+    id="toast-container"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true">
+  </div>
+
+  <!-- App Script -->
+  <script src="js/app.js"></script>
+
+  <!--
+    TODO: Additional scripts to add as you build out the backend:
+    - <script src="js/auth.js"></script>        — auth token management, refresh
+    - <script src="js/api.js"></script>         — centralized fetch wrapper with error handling
+    - <script src="js/upload.js"></script>      — media upload to S3/R2 with progress bar
+    - <script src="js/autocomplete.js"></script>— spot name autocomplete dropdown
+  -->
+</body>
+</html>

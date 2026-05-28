@@ -1,0 +1,206 @@
+<!--
+  pages/feed.html
+  ═══════════════
+  STATIC REFERENCE — not loaded directly.
+
+  This file shows the markup structure for the Feed (Home) page.
+  In the SPA, app.js renders equivalent HTML into <div id="app">.
+
+  TODO (Backend team):
+  - If switching to SSR, use this as your template.
+  - Replace mock content with your templating engine loops.
+  - GET /api/rankings/feed?cursor=... (paginated, newest first)
+  - Implement infinite scroll or a "Load more" button.
+-->
+
+<main id="main-content" class="content-container">
+
+  <!-- Page Header -->
+  <div class="page-header__row">
+    <div class="page-header">
+      <h1 class="page-header__title">Recent Rankings</h1>
+      <p class="page-header__subtitle">See what others are studying at</p>
+    </div>
+    <a href="pages/createReview.html" class="btn btn-primary">
+      + Rate a Spot
+    </a>
+  </div>
+
+  <!-- Soft CTA banner -->
+  <div class="feed-cta" role="complementary" aria-label="Rate a spot prompt">
+    <div class="feed-cta__text">
+      <strong>Visited somewhere lately?</strong>
+      <span>Share your study spot experience with the community.</span>
+    </div>
+    <a href="pages/createReview.html" class="btn btn-outline btn-sm">Write a Review</a>
+  </div>
+
+  <!-- Rankings Feed -->
+  <section aria-label="Recent study spot rankings">
+
+    <!--
+      TODO: Loop over rankings from GET /api/rankings/feed
+      Each ranking uses the .card.ranking-card structure from components.css
+    -->
+
+    <!-- Example Ranking Card -->
+    <article class="card ranking-card">
+      <header class="ranking-card__header">
+        <!-- Avatar (links to user profile) -->
+        <a href="pages/userProfile.html" class="ranking-card__avatar-btn" aria-label="View Jordan Park's profile">
+          <div class="avatar avatar-md" aria-hidden="true">JP</div>
+        </a>
+
+        <div class="ranking-card__meta">
+          <div class="ranking-card__user-row">
+            <a href="pages/userProfile.html" class="ranking-card__username">Jordan Park</a>
+            <span class="ranking-card__handle">@jordanpark</span>
+            <span class="ranking-card__sep" aria-hidden="true">·</span>
+            <time class="ranking-card__time" datetime="2024-01-15T10:00:00Z">2h ago</time>
+          </div>
+
+          <!-- Spot name (links to spot detail) -->
+          <a href="pages/spotDetail.html" class="ranking-card__spot-name">Green Library</a>
+
+          <div class="ranking-card__badges">
+            <span class="badge badge-libraries">Libraries</span>
+            <span class="ranking-card__sep" aria-hidden="true">·</span>
+            <!-- Star Rating -->
+            <div class="star-rating" aria-label="4.5 out of 5 stars">
+              <div class="star-rating__stars">
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star half"   aria-hidden="true">★</span>
+              </div>
+              <span class="star-rating__value">4.5</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Media thumbnails (photos/videos) -->
+      <div class="ranking-card__media" aria-label="Photos">
+        <div class="media-thumb" role="img" aria-label="Photo thumbnail">
+          <!-- TODO: <img src="{{ photo.url }}" alt="{{ photo.altText }}" /> -->
+          <span>📚</span>
+        </div>
+      </div>
+
+      <!-- Score attributes -->
+      <div class="ranking-card__body">
+        <div class="score-grid" aria-label="Attribute scores">
+          <div class="score-item">
+            <span class="score-item__label">Quiet</span>
+            <div class="dot-score" role="img" aria-label="5 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Wifi</span>
+            <div class="dot-score" role="img" aria-label="5 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Outlets</span>
+            <div class="dot-score" role="img" aria-label="4 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Restroom</span>
+            <div class="dot-score" role="img" aria-label="4 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Crowded</span>
+            <div class="dot-score" role="img" aria-label="3 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Seating</span>
+            <div class="dot-score" role="img" aria-label="5 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+            </div>
+          </div>
+        </div>
+
+        <p class="ranking-card__hours">
+          <strong>Hours:</strong> 7am – midnight
+        </p>
+        <p class="ranking-card__notes">
+          Perfect for deep work. The east wing is quietest.
+        </p>
+      </div>
+
+      <!-- Footer: comments -->
+      <footer class="ranking-card__footer">
+        <button
+          class="comments-toggle"
+          aria-expanded="false"
+          aria-controls="comments-r1">
+          Comments (2)
+        </button>
+
+        <div class="comments-section" id="comments-r1" role="region" aria-label="Comments">
+          <ul class="comment-list" aria-label="Comment list">
+            <li class="comment">
+              <div class="avatar avatar-sm" aria-hidden="true">MC</div>
+              <div class="comment__bubble">
+                <div class="comment__meta">
+                  <span class="comment__name">Maya Chen</span>
+                  <time class="comment__time">1h ago</time>
+                </div>
+                <p class="comment__text">Agreed! Love the third floor reading room.</p>
+              </div>
+            </li>
+          </ul>
+
+          <!-- TODO: POST /api/comments { rankingId, userId, text } -->
+          <form class="comment-form" aria-label="Add a comment">
+            <div class="avatar avatar-sm" aria-hidden="true">MC</div>
+            <input
+              type="text"
+              class="comment-form__input"
+              placeholder="Add a comment…"
+              aria-label="Comment text"
+              autocomplete="off" />
+            <button type="submit" class="comment-form__submit" aria-label="Post comment">↑</button>
+          </form>
+        </div>
+      </footer>
+    </article>
+
+    <!-- TODO: Infinite scroll — fetch GET /api/rankings/feed?cursor=NEXT_CURSOR -->
+
+  </section>
+
+</main>

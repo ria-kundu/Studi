@@ -1,0 +1,233 @@
+<!--
+  pages/spotDetail.html
+  ═════════════════════
+  STATIC REFERENCE — not loaded directly in the SPA.
+
+  Shows all reviews for a single study spot.
+
+  TODO (Backend team):
+  - GET /api/spots/:spotId — spot metadata (name, category, address, hours aggregate)
+  - GET /api/spots/:spotId/rankings — all user reviews, newest first
+  - Compute aggregate scores server-side or in the frontend
+-->
+
+<main id="main-content" class="content-container">
+
+  <a href="feed.html" class="back-link" aria-label="Go back">← Back</a>
+
+  <!-- Spot Overview -->
+  <section class="spot-overview" aria-label="Spot overview">
+    <!-- TODO: Render spot name from backend: {{ spot.name }} -->
+    <h1 class="spot-overview__name">Green Library</h1>
+    <div class="spot-overview__row">
+      <span class="badge badge-libraries">Libraries</span>
+      <!-- TODO: Compute average overall score from all rankings -->
+      <div class="star-rating" aria-label="4.5 out of 5 stars">
+        <div class="star-rating__stars">
+          <span class="star-rating__star filled" aria-hidden="true">★</span>
+          <span class="star-rating__star filled" aria-hidden="true">★</span>
+          <span class="star-rating__star filled" aria-hidden="true">★</span>
+          <span class="star-rating__star filled" aria-hidden="true">★</span>
+          <span class="star-rating__star half"   aria-hidden="true">★</span>
+        </div>
+        <span class="star-rating__value">4.5</span>
+      </div>
+      <span class="spot-overview__review-count">12 reviews</span>
+    </div>
+    <!--
+      TODO: Show:
+      - Address: <p>{{ spot.address }}</p>
+      - Map embed or link: <a href="https://maps.google.com/?q={{ spot.address }}">View on map</a>
+    -->
+  </section>
+
+  <!-- Aggregate Attribute Scores -->
+  <section class="spot-avg-stats" aria-label="Average attribute scores across all reviews">
+    <p class="spot-avg-stats__title">Average Scores</p>
+    <div class="score-grid">
+      <!--
+        TODO: Compute these averages from all rankings for this spot.
+        Example: AVG(quietness) across all rankings WHERE spotId = :spotId
+      -->
+      <div class="score-item">
+        <span class="score-item__label">Quiet</span>
+        <div class="dot-score" role="img" aria-label="5 out of 5">
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+        </div>
+      </div>
+      <div class="score-item">
+        <span class="score-item__label">Wifi</span>
+        <div class="dot-score" role="img" aria-label="5 out of 5">
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+        </div>
+      </div>
+      <div class="score-item">
+        <span class="score-item__label">Outlets</span>
+        <div class="dot-score" role="img" aria-label="4 out of 5">
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot"></div>
+        </div>
+      </div>
+      <div class="score-item">
+        <span class="score-item__label">Restroom</span>
+        <div class="dot-score" role="img" aria-label="4 out of 5">
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot"></div>
+        </div>
+      </div>
+      <div class="score-item">
+        <span class="score-item__label">Crowded</span>
+        <div class="dot-score" role="img" aria-label="3 out of 5">
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot"></div>
+          <div class="dot-score__dot"></div>
+        </div>
+      </div>
+      <div class="score-item">
+        <span class="score-item__label">Seating</span>
+        <div class="dot-score" role="img" aria-label="5 out of 5">
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+          <div class="dot-score__dot filled"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- All Reviews -->
+  <section aria-label="All reviews">
+    <h2 style="font-size:var(--text-base); font-weight:var(--weight-semi); color:var(--color-text-secondary); margin-bottom:var(--space-4);">
+      All Reviews
+    </h2>
+
+    <!--
+      TODO: Loop over GET /api/spots/:spotId/rankings
+      Reuse the .card.ranking-card markup from pages/feed.html
+    -->
+
+    <!-- Empty state -->
+    <!--
+    <div class="empty-state">
+      <span class="empty-state__icon">🔍</span>
+      <p class="empty-state__title">No reviews yet</p>
+      <p class="empty-state__subtitle">Be the first to rate this spot!</p>
+      <a href="createReview.html" class="btn btn-primary">Write a Review</a>
+    </div>
+    -->
+
+    <!-- Example review card (repeat for each review) -->
+    <article class="card ranking-card">
+      <header class="ranking-card__header">
+        <a href="profile.html" aria-label="View Jordan Park's profile">
+          <div class="avatar avatar-md" aria-hidden="true">JP</div>
+        </a>
+        <div class="ranking-card__meta">
+          <div class="ranking-card__user-row">
+            <a href="profile.html" class="ranking-card__username">Jordan Park</a>
+            <span class="ranking-card__handle">@jordanpark</span>
+            <span class="ranking-card__sep" aria-hidden="true">·</span>
+            <time class="ranking-card__time">2h ago</time>
+          </div>
+          <span class="ranking-card__spot-name" style="cursor:default;">Green Library</span>
+          <div class="ranking-card__badges">
+            <span class="badge badge-libraries">Libraries</span>
+            <span class="ranking-card__sep" aria-hidden="true">·</span>
+            <div class="star-rating" aria-label="4.5 out of 5 stars">
+              <div class="star-rating__stars">
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star half"   aria-hidden="true">★</span>
+              </div>
+              <span class="star-rating__value">4.5</span>
+            </div>
+          </div>
+        </div>
+      </header>
+      <div class="ranking-card__media" aria-label="Photos">
+        <div class="media-thumb" role="img" aria-label="Photo">
+          <span>📚</span>
+          <!-- TODO: <img src="{{ media.url }}" alt="{{ media.altText }}" /> -->
+        </div>
+      </div>
+      <div class="ranking-card__body">
+        <div class="score-grid" aria-label="Attribute scores">
+          <div class="score-item">
+            <span class="score-item__label">Quiet</span>
+            <div class="dot-score" role="img" aria-label="5 out of 5">
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Wifi</span>
+            <div class="dot-score" role="img" aria-label="5 out of 5">
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Outlets</span>
+            <div class="dot-score" role="img" aria-label="4 out of 5">
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Restroom</span>
+            <div class="dot-score" role="img" aria-label="4 out of 5">
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Crowded</span>
+            <div class="dot-score" role="img" aria-label="3 out of 5">
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Seating</span>
+            <div class="dot-score" role="img" aria-label="5 out of 5">
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div><div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+            </div>
+          </div>
+        </div>
+        <p class="ranking-card__hours"><strong>Hours:</strong> 7am – midnight</p>
+        <p class="ranking-card__notes">Perfect for deep work. The east wing is quietest.</p>
+      </div>
+      <footer class="ranking-card__footer">
+        <button class="comments-toggle" aria-expanded="false">Comments (2)</button>
+      </footer>
+    </article>
+
+  </section>
+
+</main>

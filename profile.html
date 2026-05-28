@@ -1,0 +1,196 @@
+<!--
+  pages/profile.html
+  ══════════════════
+  STATIC REFERENCE — not loaded directly in the SPA.
+
+  Shows the markup for the Profile page (own user OR another user).
+  Identical structure whether viewing your own profile or someone else's.
+  The only difference: "Edit" button only appears for the authenticated user's own profile.
+
+  TODO (Backend team):
+  - GET /api/users/:userId — profile data (name, handle, bio, avatar URL)
+  - GET /api/users/:userId/rankings?sort=newest — rankings list, paginated
+  - PATCH /api/users/:userId — edit profile (own only)
+  - GET /api/users/:userId/followers and /following — counts
+-->
+
+<main id="main-content" class="content-container">
+
+  <!-- Back link (shown when viewing another user's profile) -->
+  <!-- TODO: Hide this when viewing own profile -->
+  <a href="#" class="back-link" aria-label="Go back">← Back</a>
+
+  <!-- Profile Header -->
+  <section class="profile-header-card" aria-label="Profile information">
+    <div class="profile-header-card__top">
+
+      <!-- Avatar — TODO: Replace initials with <img src="{{ user.avatarUrl }}" alt="{{ user.name }}"> -->
+      <div class="avatar avatar-xl" aria-hidden="true">MC</div>
+
+      <div class="profile-header-card__info">
+        <h1 class="profile-header-card__name">Maya Chen</h1>
+        <p class="profile-header-card__handle">@mayachen</p>
+        <!-- TODO: Show bio from backend: <p>{{ user.bio }}</p> -->
+      </div>
+
+      <!-- Edit button (own profile only) -->
+      <!-- TODO: Show this only when userId === currentUser.id -->
+      <button
+        class="btn btn-ghost btn-sm profile-header-card__edit"
+        aria-label="Edit your profile"
+        data-action="edit-profile">
+        Edit
+        <!-- TODO: Open edit profile modal — PATCH /api/users/:userId -->
+      </button>
+    </div>
+
+    <!-- Stats row -->
+    <div class="profile-header-card__stats">
+      <div class="profile-stat">
+        <!-- TODO: Replace with actual count from backend -->
+        <span class="profile-stat__value">14</span>
+        <span class="profile-stat__label">Rankings</span>
+      </div>
+      <div class="profile-stat">
+        <!-- TODO: GET /api/users/:userId/followers -->
+        <span class="profile-stat__value">—</span>
+        <span class="profile-stat__label">Followers</span>
+      </div>
+      <div class="profile-stat">
+        <!-- TODO: GET /api/users/:userId/following -->
+        <span class="profile-stat__value">—</span>
+        <span class="profile-stat__label">Following</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rankings List (most recent first) -->
+  <section aria-label="Your rankings">
+    <h2 style="font-size:var(--text-base); font-weight:var(--weight-semi); color:var(--color-text-secondary); margin-bottom:var(--space-4);">
+      Your Rankings
+      <!-- TODO: Change to "{{ user.name }}'s Rankings" when viewing another user -->
+    </h2>
+
+    <!--
+      TODO: Loop over GET /api/users/:userId/rankings?sort=newest
+      Reuse the .card.ranking-card structure from pages/feed.html
+    -->
+
+    <!-- Empty state (shown when user has no rankings) -->
+    <!--
+    <div class="empty-state">
+      <span class="empty-state__icon">📍</span>
+      <p class="empty-state__title">No rankings yet</p>
+      <p class="empty-state__subtitle">Be the first to rate a spot!</p>
+      <a href="pages/createReview.html" class="btn btn-primary">Rate a Spot</a>
+    </div>
+    -->
+
+    <!-- Example ranking card (repeat for each ranking) -->
+    <article class="card ranking-card">
+      <header class="ranking-card__header">
+        <div class="avatar avatar-md" aria-hidden="true">MC</div>
+        <div class="ranking-card__meta">
+          <div class="ranking-card__user-row">
+            <span class="ranking-card__username" style="cursor:default;">Maya Chen</span>
+            <span class="ranking-card__handle">@mayachen</span>
+            <span class="ranking-card__sep" aria-hidden="true">·</span>
+            <time class="ranking-card__time">1d ago</time>
+          </div>
+          <a href="pages/spotDetail.html" class="ranking-card__spot-name">
+            Dolores Park – North Meadow
+          </a>
+          <div class="ranking-card__badges">
+            <span class="badge badge-outdoors">Outdoors</span>
+            <span class="ranking-card__sep" aria-hidden="true">·</span>
+            <div class="star-rating" aria-label="3 out of 5 stars">
+              <div class="star-rating__stars">
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star filled" aria-hidden="true">★</span>
+                <span class="star-rating__star"        aria-hidden="true">★</span>
+                <span class="star-rating__star"        aria-hidden="true">★</span>
+              </div>
+              <span class="star-rating__value">3.0</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="ranking-card__body">
+        <div class="score-grid" aria-label="Attribute scores">
+          <div class="score-item">
+            <span class="score-item__label">Quiet</span>
+            <div class="dot-score" role="img" aria-label="2 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Wifi</span>
+            <div class="dot-score" role="img" aria-label="1 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Outlets</span>
+            <div class="dot-score" role="img" aria-label="1 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Restroom</span>
+            <div class="dot-score" role="img" aria-label="2 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Crowded</span>
+            <div class="dot-score" role="img" aria-label="5 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+            </div>
+          </div>
+          <div class="score-item">
+            <span class="score-item__label">Seating</span>
+            <div class="dot-score" role="img" aria-label="4 out of 5">
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot filled"></div>
+              <div class="dot-score__dot"></div>
+            </div>
+          </div>
+        </div>
+        <p class="ranking-card__hours"><strong>Hours:</strong> 6am – 10pm</p>
+        <p class="ranking-card__notes">No wifi but the vibe is immaculate for reading.</p>
+      </div>
+
+      <footer class="ranking-card__footer">
+        <button class="comments-toggle" aria-expanded="false">Comments (1)</button>
+      </footer>
+    </article>
+
+    <!-- TODO: Pagination — GET /api/users/:userId/rankings?page=N -->
+
+  </section>
+
+</main>

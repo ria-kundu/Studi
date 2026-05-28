@@ -1,0 +1,158 @@
+<!--
+  pages/search.html
+  ═════════════════
+  STATIC REFERENCE — not loaded directly in the SPA.
+
+  Shows markup for the Search page: name-based spot search + AI chatbot.
+
+  TODO (Backend team):
+  - GET /api/spots?q=... — full-text search on spot names
+  - POST /api/recommendations/chat { userId, message, history }
+      Backend fetches user's past rankings (GET /api/users/:userId/rankings)
+      and passes them as context to an LLM to generate personalized suggestions.
+-->
+
+<main id="main-content" class="content-container">
+
+  <div class="page-header">
+    <h1 class="page-header__title">Find a Spot</h1>
+    <p class="page-header__subtitle">Search by name or ask the AI for recommendations</p>
+  </div>
+
+  <!-- Search Bar -->
+  <section aria-label="Search study spots">
+    <form id="search-form" role="search">
+      <div class="search-bar">
+        <span class="search-bar__icon" aria-hidden="true">🔍</span>
+        <input
+          id="search-input"
+          type="search"
+          class="search-bar__input"
+          placeholder="Search study spots…"
+          aria-label="Search for a study spot by name"
+          autocomplete="off" />
+        <button type="submit" class="btn btn-primary">Search</button>
+        <!-- TODO: Debounce input and call GET /api/spots?q=... on each keystroke for live results -->
+      </div>
+    </form>
+
+    <!-- Search Results (populated by JS or server render) -->
+    <div
+      id="search-results"
+      class="search-results"
+      role="region"
+      aria-live="polite"
+      aria-label="Search results">
+
+      <!--
+        TODO: Loop over results from GET /api/spots?q=...
+        Example result item:
+      -->
+      <!--
+      <ul aria-label="Study spot results">
+        <li>
+          <button class="search-result-item" data-spot-id="{{ spot.id }}">
+            <div>
+              <div class="search-result-item__name">{{ spot.name }}</div>
+              <div class="search-result-item__meta">
+                <span class="badge badge-{{ spot.category | lower }}">{{ spot.category }}</span>
+                <span class="search-result-item__count">{{ spot.reviewCount }} reviews</span>
+              </div>
+            </div>
+            <div class="star-rating" aria-label="{{ spot.avgScore }} out of 5 stars">
+              ...
+            </div>
+          </button>
+        </li>
+      </ul>
+      -->
+
+      <!-- No results state -->
+      <!--
+      <p style="text-align:center; color:var(--color-text-tertiary); padding:var(--space-8) 0;">
+        No spots found for "<em>{{ query }}</em>"
+      </p>
+      -->
+    </div>
+  </section>
+
+  <div class="divider">or ask the AI</div>
+
+  <!-- AI Chatbot -->
+  <section aria-label="AI recommendation chatbot">
+    <div class="chatbot-panel">
+
+      <!-- Header -->
+      <div class="chatbot-panel__header">
+        <div class="chatbot-panel__ai-badge" aria-hidden="true">AI</div>
+        <span class="chatbot-panel__title">StudySpot Assistant</span>
+        <span class="chatbot-panel__powered">powered by your ratings</span>
+        <!--
+          TODO: Show loading spinner here while backend fetches the user's
+          ranking history to build the LLM context window.
+        -->
+      </div>
+
+      <!-- Message History -->
+      <div
+        class="chatbot-panel__messages"
+        id="chat-messages"
+        role="log"
+        aria-live="polite"
+        aria-label="Chat conversation">
+
+        <!-- Initial assistant greeting -->
+        <div class="chat-row chat-row--assistant">
+          <div class="chat-bubble chat-bubble--assistant">
+            Hi! Ask me for study spot recommendations based on your past ratings.
+            Try: <em>"I want somewhere quiet with good wifi"</em>
+          </div>
+        </div>
+
+        <!-- Example user message -->
+        <!--
+        <div class="chat-row chat-row--user">
+          <div class="chat-bubble chat-bubble--user">
+            I want somewhere quiet with good wifi
+          </div>
+        </div>
+        -->
+
+        <!-- Example assistant response -->
+        <!--
+        <div class="chat-row chat-row--assistant">
+          <div class="chat-bubble chat-bubble--assistant">
+            Based on your ratings, I'd recommend <strong>Mechanics' Institute Library</strong>...
+          </div>
+        </div>
+        -->
+
+        <!-- Loading state -->
+        <!--
+        <div class="chat-row chat-row--assistant">
+          <div class="chat-bubble chat-bubble--assistant">
+            <div class="loading-dots" aria-label="Loading response">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+        -->
+
+      </div>
+
+      <!-- Input row -->
+      <form class="chatbot-panel__input-row" id="chat-form" aria-label="Send message to AI">
+        <input
+          type="text"
+          class="chatbot-panel__text-input"
+          id="chat-input"
+          placeholder="e.g. Somewhere quiet with outlets…"
+          aria-label="Message to AI assistant"
+          autocomplete="off" />
+          <!-- TODO: POST /api/recommendations/chat on submit -->
+        <button type="submit" class="chatbot-panel__send" aria-label="Send message">↑</button>
+      </form>
+    </div>
+  </section>
+
+</main>
