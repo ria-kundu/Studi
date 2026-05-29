@@ -1,0 +1,116 @@
+/* ============================================================
+   variables.css — Design tokens for StudySpot
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+
+:root {
+  /* ── Brand Colors ── */
+  --color-primary:        #4f6ef7;
+  --color-primary-hover:  #3a57e8;
+  --color-primary-light:  #eef1fe;
+  --color-primary-dim:    #c7cffc;
+
+  --color-accent:         #f06a3a;
+  --color-accent-light:   #fdf0eb;
+
+  /* ── Neutrals ── */
+  --color-bg:             #f7f6f3;
+  --color-surface:        #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-border:         #e8e6e1;
+  --color-border-subtle:  #f0eee9;
+
+  --color-text-primary:   #1a1917;
+  --color-text-secondary: #6b6860;
+  --color-text-tertiary:  #a09e99;
+  --color-text-inverse:   #ffffff;
+
+  /* ── Category Colors ── */
+  --color-cat-libraries-bg:   #e8f4fd;
+  --color-cat-libraries-text: #1a6ea8;
+  --color-cat-libraries-dot:  #3b9edb;
+
+  --color-cat-cafes-bg:       #fef5e4;
+  --color-cat-cafes-text:     #92520a;
+  --color-cat-cafes-dot:      #e8921a;
+
+  --color-cat-outdoors-bg:    #e8f6ee;
+  --color-cat-outdoors-text:  #1a6b3c;
+  --color-cat-outdoors-dot:   #2fa85e;
+
+  --color-cat-other-bg:       #f0ebff;
+  --color-cat-other-text:     #5b21b6;
+  --color-cat-other-dot:      #8b5cf6;
+
+  /* ── Semantic ── */
+  --color-danger:         #e53e3e;
+  --color-danger-light:   #fff5f5;
+  --color-success:        #2fa85e;
+  --color-star:           #f5a623;
+
+  /* ── Typography ── */
+  --font-display:  'DM Serif Display', Georgia, serif;
+  --font-body:     'DM Sans', system-ui, sans-serif;
+
+  --text-xs:    0.75rem;    /* 12px */
+  --text-sm:    0.8125rem;  /* 13px */
+  --text-base:  0.9375rem;  /* 15px */
+  --text-lg:    1.0625rem;  /* 17px */
+  --text-xl:    1.25rem;    /* 20px */
+  --text-2xl:   1.5rem;     /* 24px */
+  --text-3xl:   2rem;       /* 32px */
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semi:    600;
+  --weight-bold:    700;
+
+  --leading-tight:  1.2;
+  --leading-snug:   1.35;
+  --leading-normal: 1.55;
+  --leading-loose:  1.7;
+
+  /* ── Spacing ── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ── Radii ── */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-2xl:  28px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-xs:  0 1px 2px rgba(26,25,23,0.06);
+  --shadow-sm:  0 2px 8px rgba(26,25,23,0.07);
+  --shadow-md:  0 4px 16px rgba(26,25,23,0.09);
+  --shadow-lg:  0 8px 32px rgba(26,25,23,0.11);
+  --shadow-xl:  0 16px 48px rgba(26,25,23,0.14);
+
+  /* ── Layout ── */
+  --nav-height:        56px;
+  --content-max-width: 680px;
+  --page-padding:      var(--space-4);
+
+  /* ── Transitions ── */
+  --transition-fast:   120ms ease;
+  --transition-base:   200ms ease;
+  --transition-slow:   350ms ease;
+}
+
+/* ── Breakpoints (reference comments — use in media queries) ──
+   Mobile:  320px+  (default styles)
+   Tablet:  768px+  (@media (min-width: 768px))
+   Desktop: 1024px+ (@media (min-width: 1024px))
+   ──────────────────────────────────────────────────────────── */

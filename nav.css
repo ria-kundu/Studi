@@ -1,0 +1,169 @@
+/* ============================================================
+   nav.css — Top navigation bar
+   ============================================================ */
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  background: rgba(247, 246, 243, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-xs);
+}
+
+.navbar__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--page-padding);
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+/* ── Logo ── */
+.navbar__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.navbar__logo-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.navbar__logo-wordmark {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+.navbar__logo-wordmark span {
+  color: var(--color-primary);
+}
+
+/* ── Desktop Tab Nav ── */
+.navbar__tabs {
+  display: none;
+  align-items: center;
+  gap: 2px;
+}
+
+@media (min-width: 768px) {
+  .navbar__tabs {
+    display: flex;
+  }
+}
+
+.navbar__tab {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.navbar__tab:hover {
+  color: var(--color-text-primary);
+  background: var(--color-border-subtle);
+}
+.navbar__tab[aria-current="page"] {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: var(--weight-semi);
+}
+
+/* ── Right side: avatar + logout ── */
+.navbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.navbar__user-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  padding: 2px;
+  transition: background var(--transition-fast);
+}
+.navbar__user-btn:hover {
+  background: var(--color-border-subtle);
+}
+.navbar__user-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+  display: none;
+}
+@media (min-width: 1024px) {
+  .navbar__user-name { display: block; }
+}
+
+.navbar__logout {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.navbar__logout:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+/* ── Mobile Tab Bar (second row inside navbar) ── */
+.navbar__mobile-tabs {
+  display: flex;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+@media (min-width: 768px) {
+  .navbar__mobile-tabs {
+    display: none;
+  }
+}
+
+.navbar__mobile-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-1);
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-tertiary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  letter-spacing: 0.02em;
+}
+.navbar__mobile-tab:hover {
+  color: var(--color-text-primary);
+  background: var(--color-border-subtle);
+}
+.navbar__mobile-tab[aria-selected="true"] {
+  color: var(--color-primary);
+}
+.navbar__mobile-tab__icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
