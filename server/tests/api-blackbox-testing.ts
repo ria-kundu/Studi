@@ -11,7 +11,11 @@ config({ path: resolve(TEST_DIR, "../.env") });
 const BASE_URL = (process.env.API_BASE_URL ?? "http://localhost:3000/api").replace(/\/$/, "");
 let VALID_TOKEN = process.env.FIREBASE_ID_TOKEN;
 let NO_PROFILE_TOKEN = process.env.FIREBASE_ID_TOKEN_NO_PROFILE;
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? "http://localhost:5173";
+const FRONTEND_ORIGIN =
+  (process.env.FRONTEND_ORIGINS ?? process.env.FRONTEND_ORIGIN ?? "http://localhost:5173")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)[0] ?? "http://localhost:5173";
 const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY;
 const FIREBASE_TEST_EMAIL = process.env.FIREBASE_TEST_EMAIL;
 const FIREBASE_TEST_PASSWORD = process.env.FIREBASE_TEST_PASSWORD;

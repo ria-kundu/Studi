@@ -9,19 +9,41 @@ function envNumber(name: string, fallback: number): number {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
+function envList(name: string): string[] {
+  return (process.env[name] ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 export function configureSecurityMiddleware(app: Express): void {
   // Helmet sets security-related HTTP headers that help mitigate common browser attacks.
   app.use(helmet());
 
-  const frontendOrigin = process.env.FRONTEND_ORIGIN ?? "http://localhost:5173";
+  const developmentFrontendOrigins =
+    process.env.NODE_ENV === "production"
+      ? []
+      : [
+          "http://localhost:5173",
+          "http://127.0.0.1:5173",
+          "http://localhost:5174",
+          "http://127.0.0.1:5174"
+        ];
+  const frontendOrigins = [
+    ...envList("FRONTEND_ORIGINS"),
+    ...envList("FRONTEND_ORIGIN"),
+    ...developmentFrontendOrigins
+  ];
+  const allowedFrontendOrigins =
+    frontendOrigins.length > 0 ? Array.from(new Set(frontendOrigins)) : ["http://localhost:5173"];
 
   app.use(
     cors({
-      origin: frontendOrigin,
+      origin: allowedFrontendOrigins,
       methods: ["GET", "POST", "PATCH", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"]
       // This API uses Authorization bearer tokens, not cookies, so credentials are not enabled.
-      // Restricting CORS to FRONTEND_ORIGIN avoids wildcard cross-origin access.
+      // Restricting CORS to configured frontend origins avoids wildcard cross-origin access.
     })
   );
 

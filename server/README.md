@@ -236,7 +236,7 @@ Shape:
 - Firebase Admin verifies ID tokens on protected routes.
 - `uid` is taken only from the verified token.
 - Helmet sets common security-related HTTP headers.
-- CORS is restricted to `FRONTEND_ORIGIN`.
+- CORS is restricted to `FRONTEND_ORIGIN`. `FRONTEND_ORIGINS` is also supported for comma-separated multi-origin deployments.
 - The API uses bearer tokens in the `Authorization` header, not cookies.
 - Rate limiting is applied under `/api`.
 - Zod validates request bodies.
