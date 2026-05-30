@@ -1,0 +1,11 @@
+.env
+.env.local
+.env.*.local
+.idea/
+
+node_modules/
+dist/
+*.log
+
+serviceAccountKey.json
+firebase-adminsdk-*.json

@@ -1,0 +1,96 @@
+name: Backend Black-Box Tests
+
+on:
+  push:
+    paths:
+      - "server/**"
+      - ".github/workflows/backend-blackbox-tests.yml"
+  pull_request:
+    paths:
+      - "server/**"
+      - ".github/workflows/backend-blackbox-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  api-blackbox:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    env:
+      PORT: 3000
+      NODE_ENV: test
+      FRONTEND_ORIGIN: http://localhost:5173
+      FIREBASE_PROJECT_ID: studi-18616
+      GOOGLE_APPLICATION_CREDENTIALS: ./serviceAccountKey.json
+      RATE_LIMIT_MAX: 1000
+      AUTH_RATE_LIMIT_MAX: 1000
+      API_BASE_URL: http://127.0.0.1:3000/api
+      FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+      FIREBASE_TEST_EMAIL: ${{ secrets.FIREBASE_TEST_EMAIL }}
+      FIREBASE_TEST_PASSWORD: ${{ secrets.FIREBASE_TEST_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create Firebase Admin credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "Missing FIREBASE_SERVICE_ACCOUNT_JSON repository secret."
+            exit 1
+          fi
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > serviceAccountKey.json
+
+      - name: Check required test secrets
+        run: |
+          if [ -z "$FIREBASE_WEB_API_KEY" ] || [ -z "$FIREBASE_TEST_EMAIL" ] || [ -z "$FIREBASE_TEST_PASSWORD" ]; then
+            echo "Missing one or more Firebase black-box test secrets."
+            echo "Required: FIREBASE_WEB_API_KEY, FIREBASE_TEST_EMAIL, FIREBASE_TEST_PASSWORD."
+            exit 1
+          fi
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Start backend
+        run: |
+          npm start > /tmp/studi-backend.log 2>&1 &
+          echo $! > /tmp/studi-backend.pid
+
+      - name: Wait for backend
+        run: |
+          for i in {1..30}; do
+            if curl -fsS "$API_BASE_URL/health" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/studi-backend.log
+          exit 1
+
+      - name: Run black-box tests
+        run: npm run test:blackbox
+
+      - name: Stop backend
+        if: always()
+        run: |
+          if [ -f /tmp/studi-backend.pid ]; then
+            kill "$(cat /tmp/studi-backend.pid)" || true
+          fi
