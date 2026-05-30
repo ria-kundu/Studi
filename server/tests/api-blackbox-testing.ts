@@ -277,6 +277,54 @@ describe("protected route authentication checks", () => {
         bio: "test",
       },
     },
+    {
+      method: "GET",
+      path: "/users/example-user",
+    },
+    {
+      method: "GET",
+      path: "/users/example-user/rankings",
+    },
+    {
+      method: "GET",
+      path: "/rankings/feed",
+    },
+    {
+      method: "POST",
+      path: "/rankings",
+      body: {
+        spotName: "Green Library",
+        category: "Libraries",
+        quietness: 5,
+        restroom: 4,
+        wifi: 5,
+        outlets: 4,
+        crowdness: 2,
+        seating: 5,
+        hours: "8am - 10pm",
+        notes: "Quiet test spot.",
+        media: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/rankings/example-ranking/comments",
+      body: {
+        text: "Test comment.",
+      },
+    },
+    {
+      method: "GET",
+      path: "/spots?q=library",
+    },
+    {
+      method: "GET",
+      path: "/spots/example-spot",
+    },
+    {
+      method: "GET",
+      path: "/spots/example-spot/rankings",
+    },
   ];
 
   for (const route of protectedRoutes) {

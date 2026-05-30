@@ -1,13 +1,42 @@
 // src/pages/FeedPage.jsx
+import { useEffect, useState } from 'react';
 import { useRouter } from '../App.jsx';
-import { MOCK_RANKINGS } from '../data/mock.js';
+import { apiRequest } from '../api/client.js';
+import { mapRanking } from '../api/mappers.js';
 import RankingCard from '../components/RankingCard.jsx';
-import { Btn } from '../components/ui.jsx';
+import { Btn, EmptyState, LoadingDots } from '../components/ui.jsx';
 
 export default function FeedPage() {
   const { navigate } = useRouter();
-  // TODO: GET /api/rankings/feed?cursor=... — paginated feed, newest first
-  // TODO: Implement infinite scroll — fetch next page on bottom intersection observer
+  const [rankings, setRankings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadFeed() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const data = await apiRequest('/rankings/feed');
+        if (!active) return;
+        setRankings((data.rankings || []).map(mapRanking));
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : 'Unable to load rankings.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadFeed();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <main id="main-content" style={containerStyle}>
@@ -45,10 +74,25 @@ export default function FeedPage() {
 
       {/* Rankings */}
       <section aria-label="Recent study spot rankings">
-        {MOCK_RANKINGS.map(r => (
+        {loading && (
+          <div style={{ display:'flex', justifyContent:'center', padding:'32px 0' }}>
+            <LoadingDots />
+          </div>
+        )}
+        {!loading && error && (
+          <EmptyState icon="!" title="Unable to load rankings" subtitle={error} />
+        )}
+        {!loading && !error && rankings.length === 0 && (
+          <EmptyState
+            icon="📍"
+            title="No rankings yet"
+            subtitle="Be the first to rate a study spot."
+            action={<Btn onClick={() => navigate('createReview')}>Rate a Spot</Btn>}
+          />
+        )}
+        {!loading && !error && rankings.map(r => (
           <RankingCard key={r.id} ranking={r} />
         ))}
-        {/* TODO: Infinite scroll trigger element here */}
       </section>
     </main>
   );

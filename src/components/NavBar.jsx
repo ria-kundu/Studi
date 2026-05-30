@@ -8,13 +8,8 @@ const TABS = [
   { id: 'profile', label: 'Profile', icon: '👤' },
 ];
 
-export default function NavBar({ currentUser }) {
+export default function NavBar({ currentUser, onLogout }) {
   const { activeTab, tabNavigate } = useRouter();
-
-  function handleLogout() {
-    // TODO: POST /api/auth/logout — clear session cookie, redirect to /login
-    alert('Logout — TODO: implement auth logout');
-  }
 
   return (
     <header role="banner" style={navStyle}>
@@ -55,7 +50,7 @@ export default function NavBar({ currentUser }) {
               {currentUser.name}
             </span>
           </button>
-          <button onClick={handleLogout} aria-label="Log out"
+          <button onClick={onLogout} aria-label="Log out"
             style={{ fontSize:12, color:'var(--clr-ink-4)', padding:'4px 8px',
               borderRadius:'var(--r-md)', background:'none', border:'none', cursor:'pointer',
               fontFamily:'var(--font-body)', transition:'color 120ms ease, background 120ms ease' }}

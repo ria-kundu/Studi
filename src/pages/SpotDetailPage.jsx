@@ -1,31 +1,92 @@
 // src/pages/SpotDetailPage.jsx
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from '../App.jsx';
-import { MOCK_RANKINGS } from '../data/mock.js';
+import { apiRequest } from '../api/client.js';
+import { mapRanking, mapSpot } from '../api/mappers.js';
 import RankingCard from '../components/RankingCard.jsx';
-import { Badge, Stars, DotScore, BackLink, Btn, SectionHeading, EmptyState } from '../components/ui.jsx';
+import { Badge, Stars, DotScore, BackLink, Btn, SectionHeading, EmptyState, LoadingDots } from '../components/ui.jsx';
 import { RATING_FIELDS } from '../data/mock.js';
 
-export default function SpotDetailPage({ spotName }) {
+export default function SpotDetailPage({ spotId, spotName }) {
   const { back, navigate } = useRouter();
-  // TODO: GET /api/spots/:spotId — spot metadata (name, category, address)
-  // TODO: GET /api/spots/:spotId/rankings — all reviews for this spot, newest first
+  const [spot, setSpot] = useState(null);
+  const [rankings, setRankings] = useState([]);
+  const [loading, setLoading] = useState(Boolean(spotId));
+  const [error, setError] = useState('');
 
-  const rankings = MOCK_RANKINGS.filter(r => r.spotName === spotName);
-  const avgScore = rankings.length
-    ? rankings.reduce((s, r) => s + r.overallScore, 0) / rankings.length
-    : 0;
-  const firstCategory = rankings[0]?.category ?? 'Other';
+  useEffect(() => {
+    let active = true;
+
+    async function loadSpot() {
+      if (!spotId) {
+        setLoading(false);
+        setSpot(null);
+        setRankings([]);
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const [spotData, rankingData] = await Promise.all([
+          apiRequest(`/spots/${encodeURIComponent(spotId)}`),
+          apiRequest(`/spots/${encodeURIComponent(spotId)}/rankings`),
+        ]);
+
+        if (!active) return;
+        setSpot(mapSpot(spotData.spot));
+        setRankings((rankingData.rankings || []).map(mapRanking));
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : 'Unable to load spot.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadSpot();
+
+    return () => {
+      active = false;
+    };
+  }, [spotId]);
+
+  const avgScore = spot?.avgScore || 0;
+  const firstCategory = spot?.category ?? 'Other';
 
   // Compute average per attribute
-  const avgAttrs = RATING_FIELDS.map(({ key, label }) => ({
+  const avgAttrs = useMemo(() => RATING_FIELDS.map(({ key, label }) => ({
     key, label,
-    avg: rankings.length
-      ? Math.round(rankings.reduce((s, r) => s + r[key], 0) / rankings.length)
-      : 0,
-  }));
+    avg: spot?.avgAttributes?.[key]
+      ? Math.round(spot.avgAttributes[key])
+      : rankings.length
+        ? Math.round(rankings.reduce((s, r) => s + r[key], 0) / rankings.length)
+        : 0,
+  })), [rankings, spot]);
 
   const ATTR_LABELS = { quietness:'Quiet', restroom:'Restroom', wifi:'Wifi',
     outlets:'Outlets', crowdness:'Crowded', seating:'Seating' };
+
+  if (loading) {
+    return (
+      <main id="main-content" style={containerStyle}>
+        <BackLink onClick={back} />
+        <div style={{ display:'flex', justifyContent:'center', padding:'64px 0' }}>
+          <LoadingDots />
+        </div>
+      </main>
+    );
+  }
+
+  if (error || (!spot && spotId)) {
+    return (
+      <main id="main-content" style={containerStyle}>
+        <BackLink onClick={back} />
+        <EmptyState icon="?" title="Spot not found" subtitle={error} />
+      </main>
+    );
+  }
 
   return (
     <main id="main-content" style={containerStyle}>
@@ -35,7 +96,7 @@ export default function SpotDetailPage({ spotName }) {
       <section style={overviewStyle} aria-label="Spot overview">
         <h1 style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:30,
           color:'var(--clr-ink)', lineHeight:1.1, letterSpacing:'-0.02em' }}>
-          {spotName}
+          {spot?.name || spotName}
         </h1>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:12, flexWrap:'wrap' }}>
           <Badge category={firstCategory} />
@@ -44,7 +105,6 @@ export default function SpotDetailPage({ spotName }) {
             {rankings.length} review{rankings.length !== 1 ? 's' : ''}
           </span>
         </div>
-        {/* TODO: Show address and map link from backend: <a href={...}>View on map</a> */}
       </section>
 
       {/* Aggregate attribute scores */}
@@ -93,7 +153,6 @@ export default function SpotDetailPage({ spotName }) {
             <RankingCard key={r.id} ranking={r} />
           ))
         )}
-        {/* TODO: Pagination — GET /api/spots/:spotId/rankings?page=N */}
       </section>
     </main>
   );

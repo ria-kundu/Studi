@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from '../App.jsx';
 import { useToast } from '../App.jsx';
+import { apiRequest } from '../api/client.js';
 import { CATEGORIES, RATING_FIELDS } from '../data/mock.js';
 import { BackLink, Btn, FormGroup, Label, TextInput, Textarea } from '../components/ui.jsx';
 
@@ -31,12 +32,12 @@ export default function CreateReviewPage() {
   const showToast          = useToast();
   const [form, setForm]    = useState(DEFAULT_FORM);
   const [dragOver, setDragOver] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   function handleFiles(files) {
-    // TODO: Upload each file to object storage (S3/R2) via presigned URL
-    // TODO: Store returned public URLs in hidden state for form submission
     set('media', [...form.media, ...Array.from(files)]);
   }
 
@@ -44,8 +45,10 @@ export default function CreateReviewPage() {
     set('media', form.media.filter((_, i) => i !== idx));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setError('');
+
     if (!form.spotName.trim()) {
       showToast('Please enter a study spot name.');
       return;
@@ -54,12 +57,38 @@ export default function CreateReviewPage() {
       showToast('Please upload at least one photo or video.');
       return;
     }
-    // TODO: POST /api/rankings as multipart/form-data
-    // TODO: Disable submit button while in-flight; show loading state
-    // TODO: On 422 error, display field-level validation errors from backend
-    // TODO: On success, navigate to the newly created ranking or back to feed
-    showToast('Review submitted! (TODO: connect to backend)');
-    navigate('feed');
+    if (!form.hours.trim()) {
+      showToast('Please enter the spot hours.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const media = form.media.map(file => ({
+        type: file.type?.startsWith('video/') ? 'video' : 'image',
+        emoji: file.type?.startsWith('video/') ? '🎥' : '🖼️',
+      }));
+
+      const data = await apiRequest('/rankings', {
+        method: 'POST',
+        body: {
+          ...form,
+          spotName: form.spotName.trim(),
+          hours: form.hours.trim(),
+          notes: form.notes.trim(),
+          media,
+        },
+      });
+
+      showToast('Review submitted!');
+      navigate('spotDetail', { spotId: data.ranking.spotId, spotName: data.ranking.spotName });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to submit ranking.';
+      setError(message);
+      showToast(message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -89,7 +118,6 @@ export default function CreateReviewPage() {
                 placeholder="e.g. Main Street Library"
                 required
                 hint="Start typing to search existing spots, or add a new one."
-                // TODO: Autocomplete suggestions from GET /api/spots?q=...
               />
             </FormGroup>
 
@@ -183,7 +211,6 @@ export default function CreateReviewPage() {
                 className="sr-only" style={{ position:'absolute', opacity:0, width:1, height:1 }}
                 aria-label="Upload photos or videos"
                 onChange={e => handleFiles(e.target.files)}
-                // TODO: On change, upload to object storage and store returned URLs
               />
             </label>
 
@@ -200,7 +227,6 @@ export default function CreateReviewPage() {
                         display:'flex', alignItems:'center', justifyContent:'center',
                         fontSize:'1.4rem', position:'relative', flexShrink:0, overflow:'hidden' }}>
                       <span>{isVideo ? '🎥' : '🖼️'}</span>
-                      {/* TODO: Show actual thumbnail via URL.createObjectURL(f) in <img> */}
                       <button type="button" onClick={() => removeMedia(i)}
                         aria-label={`Remove ${f.name}`}
                         style={{ position:'absolute', top:2, right:2, width:18, height:18,
@@ -236,10 +262,14 @@ export default function CreateReviewPage() {
           {/* ── Actions ── */}
           <div style={{ display:'flex', gap:12, justifyContent:'flex-end',
             paddingTop:20, borderTop:'1px solid var(--clr-paper-2)', flexWrap:'wrap' }}>
+            {error && (
+              <p role="alert" style={{ flexBasis:'100%', color:'var(--clr-danger)', fontSize:13 }}>
+                {error}
+              </p>
+            )}
             <Btn variant="ghost" onClick={back}>Cancel</Btn>
-            <Btn variant="primary" size="lg" type="submit">
-              Submit Ranking
-              {/* TODO: Show loading spinner while POST /api/rankings is in-flight */}
+            <Btn variant="primary" size="lg" type="submit" disabled={submitting}>
+              {submitting ? 'Submitting...' : 'Submit Ranking'}
             </Btn>
           </div>
 

@@ -98,7 +98,7 @@ export const SEARCH_MOCK = {
 
 // TODO: Replace with POST /api/recommendations/chat
 export const CHATBOT_RESPONSES = [
-  'Based on your high ratings for Quietness and Wifi, I'd recommend **Mechanics\' Institute Library** — members report near-perfect scores on both, plus a quiet reading room.',
+  'Based on your high ratings for Quietness and Wifi, I\'d recommend **Mechanics\' Institute Library** — members report near-perfect scores on both, plus a quiet reading room.',
   'You tend to rate Cafes higher when they have good seating. Try **Réveille Coffee Co.** on Columbus — spacious, strong wifi, rarely overcrowded before noon.',
   'Your Outdoors ratings skew toward spots with restrooms nearby. **Yerba Buena Gardens** is quiet on weekday mornings and has a public restroom and shade.',
   'Looking at your recent ratings, you value outlets most. **Main Library – Larkin Branch** scores 5/5 on outlets and wifi with plenty of seating.',

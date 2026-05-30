@@ -2,28 +2,41 @@
 import { useState } from 'react';
 import { useRouter } from '../App.jsx';
 import { useToast } from '../App.jsx';
-import { USERS, CURRENT_USER } from '../data/mock.js';
+import { useAuth } from '../App.jsx';
+import { apiRequest } from '../api/client.js';
+import { mapComment } from '../api/mappers.js';
 import { Avatar, Badge, Stars, ScoreGrid, MediaThumb } from './ui.jsx';
 
 export default function RankingCard({ ranking, hideUserLink = false }) {
   const { navigate } = useRouter();
   const showToast    = useToast();
+  const { currentUser } = useAuth();
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments]         = useState(ranking.comments);
   const [commentText, setCommentText]   = useState('');
+  const [posting, setPosting]           = useState(false);
 
-  const user = USERS[ranking.userId] || { name: 'Unknown', handle: '@?', initials: '?' };
+  const user = ranking.user || { name: 'Unknown', handle: '@?', initials: '?' };
 
-  function handleComment(e) {
+  async function handleComment(e) {
     e.preventDefault();
     const text = commentText.trim();
-    if (!text) return;
-    // TODO: POST /api/comments { rankingId: ranking.id, userId: CURRENT_USER.id, text }
-    setComments(prev => [...prev, {
-      id: `c_${Date.now()}`, userId: CURRENT_USER.id, text, time: 'Just now',
-    }]);
-    setCommentText('');
-    showToast('Comment posted!');
+    if (!text || posting) return;
+
+    setPosting(true);
+    try {
+      const data = await apiRequest(`/rankings/${encodeURIComponent(ranking.id)}/comments`, {
+        method: 'POST',
+        body: { text },
+      });
+      setComments(prev => [...prev, mapComment(data.comment)]);
+      setCommentText('');
+      showToast('Comment posted!');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Unable to post comment.');
+    } finally {
+      setPosting(false);
+    }
   }
 
   return (
@@ -59,7 +72,7 @@ export default function RankingCard({ ranking, hideUserLink = false }) {
             <time style={{ fontSize:12, color:'var(--clr-ink-4)' }}>{ranking.timestamp}</time>
           </div>
 
-          <button onClick={() => navigate('spotDetail', { spotName: ranking.spotName })}
+          <button onClick={() => navigate('spotDetail', { spotId: ranking.spotId, spotName: ranking.spotName })}
             style={{ fontFamily:'var(--font-display)', fontSize:17, fontWeight:700,
               color:'var(--clr-ink)', background:'none', border:'none', cursor:'pointer',
               padding:0, textAlign:'left', marginTop:2, lineHeight:1.3,
@@ -121,7 +134,7 @@ export default function RankingCard({ ranking, hideUserLink = false }) {
               <ul style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:12 }}
                 aria-label="Comment list">
                 {comments.map(c => {
-                  const cu = USERS[c.userId] || { name:'User', initials:'?' };
+                  const cu = c.user || { name:'User', initials:'?' };
                   return (
                     <li key={c.id} style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
                       <Avatar user={cu} size="sm" />
@@ -147,8 +160,7 @@ export default function RankingCard({ ranking, hideUserLink = false }) {
             <form onSubmit={handleComment}
               style={{ display:'flex', gap:8, alignItems:'center' }}
               aria-label="Add a comment">
-              {/* TODO: Associate comment with authenticated user via backend */}
-              <Avatar user={CURRENT_USER} size="sm" />
+              <Avatar user={currentUser} size="sm" />
               <input type="text" value={commentText}
                 onChange={e => setCommentText(e.target.value)}
                 placeholder="Add a comment…"
@@ -161,11 +173,11 @@ export default function RankingCard({ ranking, hideUserLink = false }) {
                 onFocus={e => e.target.style.borderColor='var(--clr-primary-dim)'}
                 onBlur={e  => e.target.style.borderColor='transparent'}
               />
-              <button type="submit" aria-label="Post comment"
+              <button type="submit" aria-label="Post comment" disabled={posting}
                 style={{ width:32, height:32, borderRadius:'var(--r-md)', background:'var(--clr-primary)',
                   color:'#fff', display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:14, flexShrink:0, border:'none', cursor:'pointer',
-                  transition:'background 120ms ease' }}
+                  transition:'background 120ms ease', opacity: posting ? 0.6 : 1 }}
                 onMouseOver={e => e.currentTarget.style.background='var(--clr-primary-hover)'}
                 onMouseOut={e  => e.currentTarget.style.background='var(--clr-primary)'}>
                 ↑

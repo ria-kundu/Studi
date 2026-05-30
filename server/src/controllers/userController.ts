@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 
 import { HttpError } from "../middleware/errorHandler.js";
 import type { UpdateUserProfileInput } from "../schemas/userSchemas.js";
+import { getPublicUserProfile, listUserRankings } from "../services/studySpotService.js";
 import { getUserProfile, serializeUserProfile, updateCurrentUserProfile } from "../services/userService.js";
 
 function getRequiredAuthUser(req: Request): Express.AuthenticatedUser {
@@ -33,4 +34,30 @@ export async function updateCurrentUser(req: Request, res: Response): Promise<vo
   res.json({
     user: serializeUserProfile(profile)
   });
+}
+
+export async function getUserById(req: Request, res: Response): Promise<void> {
+  getRequiredAuthUser(req);
+
+  const userId = req.params.userId;
+  if (!userId || Array.isArray(userId)) {
+    throw new HttpError(400, "userId is required.");
+  }
+
+  const user = await getPublicUserProfile(userId);
+
+  res.json({ user });
+}
+
+export async function getRankingsByUserId(req: Request, res: Response): Promise<void> {
+  getRequiredAuthUser(req);
+
+  const userId = req.params.userId;
+  if (!userId || Array.isArray(userId)) {
+    throw new HttpError(400, "userId is required.");
+  }
+
+  const rankings = await listUserRankings(userId);
+
+  res.json({ rankings });
 }

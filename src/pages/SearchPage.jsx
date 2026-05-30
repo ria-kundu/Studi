@@ -1,13 +1,17 @@
 // src/pages/SearchPage.jsx
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from '../App.jsx';
-import { SEARCH_MOCK, CHATBOT_RESPONSES } from '../data/mock.js';
+import { apiRequest } from '../api/client.js';
+import { mapSpot } from '../api/mappers.js';
+import { CHATBOT_RESPONSES } from '../data/mock.js';
 import { Badge, Stars, Divider, LoadingDots } from '../components/ui.jsx';
 
 export default function SearchPage() {
   const { navigate } = useRouter();
   const [query, setQuery]         = useState('');
   const [results, setResults]     = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages]   = useState([
     { role: 'assistant', text: 'Hi! Ask me for study spot recommendations based on your past ratings. Try: "I want somewhere quiet with good wifi"' },
@@ -20,13 +24,23 @@ export default function SearchPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, chatLoading]);
 
-  function handleSearch(e) {
+  async function handleSearch(e) {
     e.preventDefault();
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     if (!q) return;
-    // TODO: GET /api/spots?q=${encodeURIComponent(q)} — full-text spot search
-    const found = Object.entries(SEARCH_MOCK).find(([k]) => q.includes(k));
-    setResults(found ? found[1] : []);
+
+    setSearchLoading(true);
+    setSearchError('');
+
+    try {
+      const data = await apiRequest(`/spots?q=${encodeURIComponent(q)}`);
+      setResults((data.spots || []).map(mapSpot));
+    } catch (err) {
+      setResults([]);
+      setSearchError(err instanceof Error ? err.message : 'Unable to search spots.');
+    } finally {
+      setSearchLoading(false);
+    }
   }
 
   function handleChat(e) {
@@ -104,7 +118,17 @@ export default function SearchPage() {
 
         {/* Results */}
         <div role="region" aria-live="polite" aria-label="Search results">
-          {results !== null && (
+          {searchLoading && (
+            <div style={{ display:'flex', justifyContent:'center', padding:'24px 0' }}>
+              <LoadingDots />
+            </div>
+          )}
+          {!searchLoading && searchError && (
+            <p role="alert" style={{ textAlign:'center', color:'var(--clr-danger)', padding:'24px 0', fontSize:13 }}>
+              {searchError}
+            </p>
+          )}
+          {!searchLoading && !searchError && results !== null && (
             results.length === 0 ? (
               <p style={{ textAlign:'center', color:'var(--clr-ink-4)', padding:'32px 0', fontSize:13 }}>
                 No spots found for "<em>{query}</em>"
@@ -114,7 +138,7 @@ export default function SearchPage() {
                 aria-label="Study spot results">
                 {results.map(spot => (
                   <li key={spot.id}>
-                    <button onClick={() => navigate('spotDetail', { spotName: spot.name })}
+                    <button onClick={() => navigate('spotDetail', { spotId: spot.id, spotName: spot.name })}
                       style={resultItemStyle}>
                       <div>
                         <div style={{ fontWeight:600, fontSize:14, color:'var(--clr-ink)' }}>
