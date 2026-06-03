@@ -27,6 +27,8 @@ export const createRankingSchema = z
     outlets: scoreSchema,
     crowdness: scoreSchema,
     seating: scoreSchema,
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
     hours: z
       .string()
       .trim()

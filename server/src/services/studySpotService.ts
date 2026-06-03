@@ -49,6 +49,8 @@ export interface RankingResponse {
   outlets: number;
   crowdness: number;
   seating: number;
+  latitude?: number;
+  longitude?: number;
   hours: string;
   notes: string;
   media: Array<{ type: "image" | "video"; emoji: string }>;
@@ -80,6 +82,13 @@ export interface SpotResponse {
 }
 
 const SCORE_KEYS = ["quietness", "restroom", "wifi", "outlets", "crowdness", "seating"] as const;
+
+interface NearbyRankingsOptions {
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+  limit?: number;
+}
 
 function rankingsCollection(): FirebaseFirestore.CollectionReference {
   return db.collection("rankings");
@@ -137,6 +146,20 @@ function spotIdFromName(name: string): string {
 function overallScore(input: Pick<RankingRecord, (typeof SCORE_KEYS)[number]>): number {
   const total = SCORE_KEYS.reduce((sum, key) => sum + input[key], 0);
   return Math.round((total / SCORE_KEYS.length) * 10) / 10;
+}
+
+function distanceMeters(from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }): number {
+  const earthRadiusMeters = 6371000;
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const deltaLatitude = toRadians(to.latitude - from.latitude);
+  const deltaLongitude = toRadians(to.longitude - from.longitude);
+  const fromLatitude = toRadians(from.latitude);
+  const toLatitude = toRadians(to.latitude);
+  const haversine =
+    Math.sin(deltaLatitude / 2) ** 2 +
+    Math.cos(fromLatitude) * Math.cos(toLatitude) * Math.sin(deltaLongitude / 2) ** 2;
+
+  return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
 async function requireUserProfile(uid: string): Promise<UserProfile> {
@@ -200,6 +223,8 @@ async function serializeRanking(record: RankingRecord): Promise<RankingResponse>
     outlets: record.outlets,
     crowdness: record.crowdness,
     seating: record.seating,
+    latitude: record.latitude,
+    longitude: record.longitude,
     hours: record.hours,
     notes: record.notes,
     media: record.media ?? [],
@@ -250,6 +275,25 @@ export async function listFeedRankings(limit = 50): Promise<RankingResponse[]> {
   return Promise.all(snapshot.docs.map((doc) => serializeRanking(doc.data() as RankingRecord)));
 }
 
+export async function listNearbyRankings(options: NearbyRankingsOptions): Promise<RankingResponse[]> {
+  const safeLimit = Math.min(Math.max(options.limit ?? 50, 1), 100);
+  const snapshot = await rankingsCollection().orderBy("createdAt", "desc").limit(250).get();
+  const center = { latitude: options.latitude, longitude: options.longitude };
+  const rankings = snapshot.docs
+    .map((doc) => doc.data() as RankingRecord)
+    .filter((ranking) => ranking.latitude !== undefined && ranking.longitude !== undefined)
+    .filter(
+      (ranking) =>
+        distanceMeters(center, {
+          latitude: ranking.latitude as number,
+          longitude: ranking.longitude as number
+        }) <= options.radiusMeters
+    )
+    .slice(0, safeLimit);
+
+  return Promise.all(rankings.map(serializeRanking));
+}
+
 export async function createRanking(uid: string, input: CreateRankingInput): Promise<RankingResponse> {
   await requireUserProfile(uid);
 
@@ -285,6 +329,9 @@ export async function createRanking(uid: string, input: CreateRankingInput): Pro
     outlets: input.outlets,
     crowdness: input.crowdness,
     seating: input.seating,
+    ...(input.latitude !== undefined && input.longitude !== undefined
+      ? { latitude: input.latitude, longitude: input.longitude }
+      : {}),
     hours: input.hours,
     notes: input.notes,
     media: input.media,
