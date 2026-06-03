@@ -1,7 +1,5 @@
-import { randomUUID } from "node:crypto";
-
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { admin, db } from "../config/firebaseAdmin.js";
-import { bucket } from "../config/firebaseAdmin.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import type { CreateCommentInput, CreateRankingInput, UpdateRankingInput } from "../schemas/rankingSchemas.js";
 import type { PreferredCategory } from "../schemas/userSchemas.js";
@@ -93,6 +91,12 @@ export interface SpotResponse {
 }
 
 const SCORE_KEYS = ["quietness", "restroom", "wifi", "outlets", "crowdness", "seating"] as const;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 interface NearbyRankingsOptions {
   latitude: number;
@@ -291,29 +295,40 @@ export async function uploadRankingMedia(uid: string, files: Express.Multer.File
     return [];
   }
 
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    throw new HttpError(500, "Cloudinary is not configured.");
+  }
+
   return Promise.all(
     files.map(async (file) => {
       const type = file.mimetype.startsWith("video/") ? "video" : "image";
-      const token = randomUUID();
-      const extension = file.originalname.includes(".") ? file.originalname.split(".").pop() : undefined;
-      const path = `rankings/${uid}/${Date.now()}-${randomUUID()}${extension ? `.${extension}` : ""}`;
-      const storageFile = bucket.file(path);
+      const upload = await new Promise<UploadApiResponse>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: `studyspot/rankings/${uid}`,
+            resource_type: "auto",
+            use_filename: true,
+            unique_filename: true
+          },
+          (error, result) => {
+            if (error || !result) {
+              reject(error ?? new Error("Cloudinary upload failed."));
+              return;
+            }
 
-      await storageFile.save(file.buffer, {
-        contentType: file.mimetype,
-        metadata: {
-          metadata: {
-            firebaseStorageDownloadTokens: token
+            resolve(result);
           }
-        }
+        );
+
+        stream.end(file.buffer);
       });
 
       return {
         type,
         emoji: type === "video" ? "🎥" : "🖼️",
-        url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`,
+        url: upload.secure_url,
         name: file.originalname,
-        path
+        path: upload.public_id
       };
     })
   );

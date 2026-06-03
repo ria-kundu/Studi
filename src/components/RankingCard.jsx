@@ -15,6 +15,7 @@ export default function RankingCard({ ranking, hideUserLink = false }) {
   const [comments, setComments]         = useState(ranking.comments);
   const [commentText, setCommentText]   = useState('');
   const [posting, setPosting]           = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState(null);
 
   const user = ranking.user || { name: 'Unknown', handle: '@?', initials: '?' };
 
@@ -94,7 +95,13 @@ export default function RankingCard({ ranking, hideUserLink = false }) {
       {ranking.media.length > 0 && (
         <div style={{ padding:'0 20px 12px', display:'flex', gap:8,
           overflowX:'auto', scrollbarWidth:'none' }} aria-label="Media">
-          {ranking.media.map((m, i) => <MediaThumb key={i} item={m} />)}
+          {ranking.media.map((m, i) => (
+            <button key={i} type="button" onClick={() => m.url && setSelectedMedia(m)}
+              aria-label="Open media preview"
+              style={{ border:'none', background:'none', padding:0, cursor: m.url ? 'zoom-in' : 'default' }}>
+              <MediaThumb item={m} />
+            </button>
+          ))}
         </div>
       )}
 
@@ -186,6 +193,24 @@ export default function RankingCard({ ranking, hideUserLink = false }) {
           </div>
         )}
       </footer>
+
+      {selectedMedia && (
+        <div role="dialog" aria-modal="true" aria-label="Media preview"
+          onClick={() => setSelectedMedia(null)}
+          style={modalOverlayStyle}>
+          <div onClick={e => e.stopPropagation()} style={modalContentStyle}>
+            <button type="button" onClick={() => setSelectedMedia(null)}
+              aria-label="Close media preview" style={modalCloseStyle}>
+              x
+            </button>
+            {selectedMedia.type === 'video' ? (
+              <video src={selectedMedia.url} controls autoPlay style={modalMediaStyle} />
+            ) : (
+              <img src={selectedMedia.url} alt={selectedMedia.name || 'Uploaded study spot'} style={modalMediaStyle} />
+            )}
+          </div>
+        </div>
+      )}
     </article>
   );
 }
@@ -198,4 +223,44 @@ const cardStyle = {
   overflow: 'hidden',
   transition: 'box-shadow 200ms ease',
   marginBottom: 16,
+};
+
+const modalOverlayStyle = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(15,14,12,.78)',
+  zIndex: 9500,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 24,
+};
+
+const modalContentStyle = {
+  position: 'relative',
+  maxWidth: 'min(920px, 96vw)',
+  maxHeight: '88vh',
+};
+
+const modalCloseStyle = {
+  position: 'absolute',
+  top: -12,
+  right: -12,
+  width: 32,
+  height: 32,
+  borderRadius: '50%',
+  border: 'none',
+  background: 'var(--clr-surface)',
+  color: 'var(--clr-ink)',
+  cursor: 'pointer',
+  fontWeight: 700,
+  boxShadow: 'var(--sh-sm)',
+};
+
+const modalMediaStyle = {
+  maxWidth: '100%',
+  maxHeight: '88vh',
+  borderRadius: 'var(--r-lg)',
+  objectFit: 'contain',
+  background: '#000',
 };
