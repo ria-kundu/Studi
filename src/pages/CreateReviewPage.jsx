@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from '../App.jsx';
 import { useToast } from '../App.jsx';
-import { apiRequest } from '../api/client.js';
+import { apiFormRequest, apiRequest } from '../api/client.js';
 import { CATEGORIES, RATING_FIELDS } from '../data/mock.js';
 import { BackLink, Btn, FormGroup, Label, TextInput, Textarea } from '../components/ui.jsx';
 
@@ -116,23 +116,33 @@ export default function CreateReviewPage() {
 
     setSubmitting(true);
     try {
-      const media = form.media.map(file => ({
-        type: file.type?.startsWith('video/') ? 'video' : 'image',
-        emoji: file.type?.startsWith('video/') ? '🎥' : '🖼️',
-      }));
       const latitude = currentLocation?.latitude;
       const longitude = currentLocation?.longitude;
+      const body = new FormData();
 
-      const data = await apiRequest('/rankings', {
+      body.set('spotName', form.spotName.trim());
+      body.set('category', form.category);
+      body.set('quietness', String(form.quietness));
+      body.set('restroom', String(form.restroom));
+      body.set('wifi', String(form.wifi));
+      body.set('outlets', String(form.outlets));
+      body.set('crowdness', String(form.crowdness));
+      body.set('seating', String(form.seating));
+      body.set('hours', form.hours.trim());
+      body.set('notes', form.notes.trim());
+
+      if (latitude !== undefined && longitude !== undefined) {
+        body.set('latitude', String(latitude));
+        body.set('longitude', String(longitude));
+      }
+
+      form.media.forEach(file => {
+        body.append('mediaFiles', file);
+      });
+
+      const data = await apiFormRequest('/rankings', {
         method: 'POST',
-        body: {
-          ...form,
-          spotName: form.spotName.trim(),
-          hours: form.hours.trim(),
-          notes: form.notes.trim(),
-          media,
-          ...(latitude !== undefined && longitude !== undefined ? { latitude, longitude } : {}),
-        },
+        formData: body,
       });
 
       showToast('Review submitted!');

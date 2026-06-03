@@ -9,6 +9,7 @@ import FeedPage from './pages/FeedPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
 import CreateReviewPage from './pages/CreateReviewPage.jsx';
+import UpdateReviewPage from './pages/UpdateReviewPage.jsx';
 import SpotDetailPage from './pages/SpotDetailPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import SignUpPage from './pages/SignUpPage.jsx';
@@ -145,7 +146,8 @@ export default function App() {
   const activeTab =
     page === 'userProfile' ? 'profile' :
     page === 'spotDetail'  ? 'feed'    :
-    page === 'createReview'? 'feed'    : page;
+    page === 'createReview'? 'feed'    :
+    page === 'updateReview'? 'feed'    : page;
 
   // ── Page → Component map ─────────────────────────────────────
   const renderPage = () => {
@@ -171,6 +173,8 @@ export default function App() {
         return <SearchPage key={key} />;
       case 'createReview':
         return <CreateReviewPage key={key} />;
+      case 'updateReview':
+        return <UpdateReviewPage key={key} rankingId={ctx.rankingId} spotId={ctx.spotId} spotName={ctx.spotName} />;
       case 'spotDetail':
         return <SpotDetailPage key={key} spotId={ctx.spotId} spotName={ctx.spotName} />;
       default:

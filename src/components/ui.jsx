@@ -287,7 +287,13 @@ export function MediaThumb({ item }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: '1.5rem', flexShrink: 0, position: 'relative', overflow: 'hidden',
       }}>
-      <span>{item.emoji}</span>
+      {item.url && item.type === 'image' ? (
+        <img src={item.url} alt={item.name || 'Uploaded study spot'} style={mediaFillStyle} />
+      ) : item.url && item.type === 'video' ? (
+        <video src={item.url} muted playsInline preload="metadata" style={mediaFillStyle} />
+      ) : (
+        <span>{item.emoji}</span>
+      )}
       {item.type === 'video' && (
         <div style={{
           position: 'absolute', inset: 0, background: 'rgba(15,14,12,.22)',
@@ -301,7 +307,13 @@ export function MediaThumb({ item }) {
           }}>▶</div>
         </div>
       )}
-      {/* TODO: Replace <span> with <img src={item.url} alt="..." /> or <video> */}
     </div>
   );
 }
+
+const mediaFillStyle = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  display: 'block',
+};
