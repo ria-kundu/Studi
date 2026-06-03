@@ -1,6 +1,7 @@
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { admin, db } from "../config/firebaseAdmin.js";
 import { HttpError } from "../middleware/errorHandler.js";
-import type { CreateCommentInput, CreateRankingInput } from "../schemas/rankingSchemas.js";
+import type { CreateCommentInput, CreateRankingInput, UpdateRankingInput } from "../schemas/rankingSchemas.js";
 import type { PreferredCategory } from "../schemas/userSchemas.js";
 import { getUserProfile, serializeUserProfile, type UserProfile, type UserProfileResponse } from "./userService.js";
 
@@ -10,11 +11,19 @@ interface RankingRecord extends Omit<CreateRankingInput, "media"> {
   id: string;
   userId: string;
   spotId: string;
-  media: Array<{ type: "image" | "video"; emoji: string }>;
+  media: RankingMedia[];
   overallScore: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+type RankingMedia = {
+  type: "image" | "video";
+  emoji: string;
+  url?: string;
+  name?: string;
+  path?: string;
+};
 
 interface CommentRecord {
   id: string;
@@ -49,9 +58,11 @@ export interface RankingResponse {
   outlets: number;
   crowdness: number;
   seating: number;
+  latitude?: number;
+  longitude?: number;
   hours: string;
   notes: string;
-  media: Array<{ type: "image" | "video"; emoji: string }>;
+  media: RankingMedia[];
   overallScore: number;
   timestamp: string;
   createdAt: string | null;
@@ -80,6 +91,19 @@ export interface SpotResponse {
 }
 
 const SCORE_KEYS = ["quietness", "restroom", "wifi", "outlets", "crowdness", "seating"] as const;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+interface NearbyRankingsOptions {
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+  limit?: number;
+}
 
 function rankingsCollection(): FirebaseFirestore.CollectionReference {
   return db.collection("rankings");
@@ -137,6 +161,20 @@ function spotIdFromName(name: string): string {
 function overallScore(input: Pick<RankingRecord, (typeof SCORE_KEYS)[number]>): number {
   const total = SCORE_KEYS.reduce((sum, key) => sum + input[key], 0);
   return Math.round((total / SCORE_KEYS.length) * 10) / 10;
+}
+
+function distanceMeters(from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }): number {
+  const earthRadiusMeters = 6371000;
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const deltaLatitude = toRadians(to.latitude - from.latitude);
+  const deltaLongitude = toRadians(to.longitude - from.longitude);
+  const fromLatitude = toRadians(from.latitude);
+  const toLatitude = toRadians(to.latitude);
+  const haversine =
+    Math.sin(deltaLatitude / 2) ** 2 +
+    Math.cos(fromLatitude) * Math.cos(toLatitude) * Math.sin(deltaLongitude / 2) ** 2;
+
+  return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
 async function requireUserProfile(uid: string): Promise<UserProfile> {
@@ -200,6 +238,8 @@ async function serializeRanking(record: RankingRecord): Promise<RankingResponse>
     outlets: record.outlets,
     crowdness: record.crowdness,
     seating: record.seating,
+    latitude: record.latitude,
+    longitude: record.longitude,
     hours: record.hours,
     notes: record.notes,
     media: record.media ?? [],
@@ -250,6 +290,69 @@ export async function listFeedRankings(limit = 50): Promise<RankingResponse[]> {
   return Promise.all(snapshot.docs.map((doc) => serializeRanking(doc.data() as RankingRecord)));
 }
 
+export async function uploadRankingMedia(uid: string, files: Express.Multer.File[] = []): Promise<RankingMedia[]> {
+  if (files.length === 0) {
+    return [];
+  }
+
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    throw new HttpError(500, "Cloudinary is not configured.");
+  }
+
+  return Promise.all(
+    files.map(async (file) => {
+      const type = file.mimetype.startsWith("video/") ? "video" : "image";
+      const upload = await new Promise<UploadApiResponse>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: `studyspot/rankings/${uid}`,
+            resource_type: "auto",
+            use_filename: true,
+            unique_filename: true
+          },
+          (error, result) => {
+            if (error || !result) {
+              reject(error ?? new Error("Cloudinary upload failed."));
+              return;
+            }
+
+            resolve(result);
+          }
+        );
+
+        stream.end(file.buffer);
+      });
+
+      return {
+        type,
+        emoji: type === "video" ? "🎥" : "🖼️",
+        url: upload.secure_url,
+        name: file.originalname,
+        path: upload.public_id
+      };
+    })
+  );
+}
+
+export async function listNearbyRankings(options: NearbyRankingsOptions): Promise<RankingResponse[]> {
+  const safeLimit = Math.min(Math.max(options.limit ?? 50, 1), 100);
+  const snapshot = await rankingsCollection().orderBy("createdAt", "desc").limit(250).get();
+  const center = { latitude: options.latitude, longitude: options.longitude };
+  const rankings = snapshot.docs
+    .map((doc) => doc.data() as RankingRecord)
+    .filter((ranking) => ranking.latitude !== undefined && ranking.longitude !== undefined)
+    .filter(
+      (ranking) =>
+        distanceMeters(center, {
+          latitude: ranking.latitude as number,
+          longitude: ranking.longitude as number
+        }) <= options.radiusMeters
+    )
+    .slice(0, safeLimit);
+
+  return Promise.all(rankings.map(serializeRanking));
+}
+
 export async function createRanking(uid: string, input: CreateRankingInput): Promise<RankingResponse> {
   await requireUserProfile(uid);
 
@@ -285,6 +388,9 @@ export async function createRanking(uid: string, input: CreateRankingInput): Pro
     outlets: input.outlets,
     crowdness: input.crowdness,
     seating: input.seating,
+    ...(input.latitude !== undefined && input.longitude !== undefined
+      ? { latitude: input.latitude, longitude: input.longitude }
+      : {}),
     hours: input.hours,
     notes: input.notes,
     media: input.media,
@@ -297,6 +403,55 @@ export async function createRanking(uid: string, input: CreateRankingInput): Pro
 
   const created = await rankingRef.get();
   return serializeRanking(created.data() as RankingRecord);
+}
+
+export async function updateRanking(
+  uid: string,
+  rankingId: string,
+  input: UpdateRankingInput
+): Promise<RankingResponse> {
+  await requireUserProfile(uid);
+
+  const rankingRef = rankingsCollection().doc(rankingId);
+  const snapshot = await rankingRef.get();
+
+  if (!snapshot.exists) {
+    throw new HttpError(404, "Ranking not found.");
+  }
+
+  const existing = snapshot.data() as RankingRecord;
+  if (existing.userId !== uid) {
+    throw new HttpError(403, "You can only update your own ranking.");
+  }
+
+  const score = overallScore({
+    quietness: input.quietness,
+    restroom: input.restroom,
+    wifi: input.wifi,
+    outlets: input.outlets,
+    crowdness: input.crowdness,
+    seating: input.seating
+  });
+
+  await rankingRef.set(
+    {
+      quietness: input.quietness,
+      restroom: input.restroom,
+      wifi: input.wifi,
+      outlets: input.outlets,
+      crowdness: input.crowdness,
+      seating: input.seating,
+      media: input.media,
+      overallScore: score,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  await refreshSpotStats(existing.spotId);
+
+  const updated = await rankingRef.get();
+  return serializeRanking(updated.data() as RankingRecord);
 }
 
 export async function addComment(

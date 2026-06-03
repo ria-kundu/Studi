@@ -1,5 +1,6 @@
 // src/pages/SpotDetailPage.jsx
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../App.jsx';
 import { useRouter } from '../App.jsx';
 import { apiRequest } from '../api/client.js';
 import { mapRanking, mapSpot } from '../api/mappers.js';
@@ -9,6 +10,7 @@ import { RATING_FIELDS } from '../data/mock.js';
 
 export default function SpotDetailPage({ spotId, spotName }) {
   const { back, navigate } = useRouter();
+  const { currentUser } = useAuth();
   const [spot, setSpot] = useState(null);
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(Boolean(spotId));
@@ -54,6 +56,20 @@ export default function SpotDetailPage({ spotId, spotName }) {
 
   const avgScore = spot?.avgScore || 0;
   const firstCategory = spot?.category ?? 'Other';
+  const existingUserRanking = rankings.find(ranking => ranking.userId === currentUser?.id);
+  const reviewButtonText = existingUserRanking ? 'Update Review' : 'Write a Review';
+  const handleReviewClick = () => {
+    if (existingUserRanking) {
+      navigate('updateReview', {
+        rankingId: existingUserRanking.id,
+        spotId,
+        spotName: spot?.name || spotName,
+      });
+      return;
+    }
+
+    navigate('createReview');
+  };
 
   // Compute average per attribute
   const avgAttrs = useMemo(() => RATING_FIELDS.map(({ key, label }) => ({
@@ -135,9 +151,9 @@ export default function SpotDetailPage({ spotId, spotName }) {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
           marginBottom:14, flexWrap:'wrap', gap:10 }}>
           <SectionHeading>All Reviews</SectionHeading>
-          <Btn size="sm" onClick={() => navigate('createReview')}
-            ariaLabel="Write a review for this spot">
-            + Write a Review
+          <Btn size="sm" onClick={handleReviewClick}
+            ariaLabel={`${reviewButtonText} for this spot`}>
+            + {reviewButtonText}
           </Btn>
         </div>
 
@@ -146,7 +162,7 @@ export default function SpotDetailPage({ spotId, spotName }) {
             icon="🔍"
             title="No reviews yet"
             subtitle="Be the first to rate this spot!"
-            action={<Btn onClick={() => navigate('createReview')}>Write a Review</Btn>}
+            action={<Btn onClick={handleReviewClick}>{reviewButtonText}</Btn>}
           />
         ) : (
           rankings.map(r => (

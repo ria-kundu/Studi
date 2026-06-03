@@ -12,6 +12,7 @@
     "test:blackbox:watch": "vitest tests/api-blackbox-testing.ts"
   },
   "dependencies": {
+    "cloudinary": "^2.10.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
@@ -19,6 +20,7 @@
     "firebase-admin": "^13.0.2",
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
+    "multer": "^2.1.1",
     "sanitize-html": "^2.14.0",
     "zod": "^3.24.1"
   },
@@ -26,6 +28,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/morgan": "^1.9.9",
+    "@types/multer": "^2.1.0",
     "@types/node": "^22.10.5",
     "@types/sanitize-html": "^2.13.0",
     "nodemon": "^3.1.9",

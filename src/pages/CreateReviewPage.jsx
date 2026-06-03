@@ -1,8 +1,8 @@
 // src/pages/CreateReviewPage.jsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from '../App.jsx';
 import { useToast } from '../App.jsx';
-import { apiRequest } from '../api/client.js';
+import { apiFormRequest, apiRequest } from '../api/client.js';
 import { CATEGORIES, RATING_FIELDS } from '../data/mock.js';
 import { BackLink, Btn, FormGroup, Label, TextInput, Textarea } from '../components/ui.jsx';
 
@@ -27,6 +27,22 @@ const CAT_EMOJI = {
   Other:     '📍',
 };
 
+function getCurrentPosition() {
+  if (!navigator.geolocation) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(
+      position => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      }),
+      () => resolve(null),
+    );
+  });
+}
+
 export default function CreateReviewPage() {
   const { back, navigate } = useRouter();
   const showToast          = useToast();
@@ -34,8 +50,43 @@ export default function CreateReviewPage() {
   const [dragOver, setDragOver] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [nearbyRankings, setNearbyRankings] = useState([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadNearbyRankings() {
+      const location = await getCurrentPosition();
+      if (!active || !location) return;
+
+      setCurrentLocation(location);
+
+      const params = new URLSearchParams({
+        latitude: String(location.latitude),
+        longitude: String(location.longitude),
+      });
+
+      try {
+        const data = await apiRequest(`/rankings/feed?${params.toString()}`, {
+          method: 'GET',
+        });
+        if (!active) return;
+        setNearbyRankings(data.rankings || []);
+      } catch {
+        if (active) setNearbyRankings([]);
+      }
+    }
+
+    loadNearbyRankings();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function handleFiles(files) {
     set('media', [...form.media, ...Array.from(files)]);
@@ -45,16 +96,17 @@ export default function CreateReviewPage() {
     set('media', form.media.filter((_, i) => i !== idx));
   }
 
+  const nearbySuggestions = nearbyRankings
+    .filter(ranking => ranking.spotName?.toLowerCase().includes(form.spotName.trim().toLowerCase()))
+    .filter((ranking, index, rankings) => rankings.findIndex(item => item.spotId === ranking.spotId) === index)
+    .slice(0, 5);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
 
     if (!form.spotName.trim()) {
       showToast('Please enter a study spot name.');
-      return;
-    }
-    if (form.media.length === 0) {
-      showToast('Please upload at least one photo or video.');
       return;
     }
     if (!form.hours.trim()) {
@@ -64,20 +116,33 @@ export default function CreateReviewPage() {
 
     setSubmitting(true);
     try {
-      const media = form.media.map(file => ({
-        type: file.type?.startsWith('video/') ? 'video' : 'image',
-        emoji: file.type?.startsWith('video/') ? '🎥' : '🖼️',
-      }));
+      const latitude = currentLocation?.latitude;
+      const longitude = currentLocation?.longitude;
+      const body = new FormData();
 
-      const data = await apiRequest('/rankings', {
+      body.set('spotName', form.spotName.trim());
+      body.set('category', form.category);
+      body.set('quietness', String(form.quietness));
+      body.set('restroom', String(form.restroom));
+      body.set('wifi', String(form.wifi));
+      body.set('outlets', String(form.outlets));
+      body.set('crowdness', String(form.crowdness));
+      body.set('seating', String(form.seating));
+      body.set('hours', form.hours.trim());
+      body.set('notes', form.notes.trim());
+
+      if (latitude !== undefined && longitude !== undefined) {
+        body.set('latitude', String(latitude));
+        body.set('longitude', String(longitude));
+      }
+
+      form.media.forEach(file => {
+        body.append('mediaFiles', file);
+      });
+
+      const data = await apiFormRequest('/rankings', {
         method: 'POST',
-        body: {
-          ...form,
-          spotName: form.spotName.trim(),
-          hours: form.hours.trim(),
-          notes: form.notes.trim(),
-          media,
-        },
+        formData: body,
       });
 
       showToast('Review submitted!');
@@ -112,13 +177,42 @@ export default function CreateReviewPage() {
           <FormSection title="Location">
             <FormGroup>
               <Label htmlFor="spot-name" required>Study Spot Name</Label>
-              <TextInput
-                id="spot-name" name="spotName" value={form.spotName}
-                onChange={e => set('spotName', e.target.value)}
-                placeholder="e.g. Main Street Library"
-                required
-                hint="Start typing to search existing spots, or add a new one."
-              />
+              <div
+                onFocus={() => setSuggestionsOpen(true)}
+                onBlur={() => setTimeout(() => setSuggestionsOpen(false), 120)}
+              >
+                <TextInput
+                  id="spot-name" name="spotName" value={form.spotName}
+                  onChange={e => set('spotName', e.target.value)}
+                  placeholder="e.g. Main Street Library"
+                  required
+                  hint="Start typing to search existing spots, or add a new one."
+                />
+                {suggestionsOpen && nearbySuggestions.length > 0 && (
+                  <div style={suggestionsStyle} role="listbox" aria-label="Nearby study spot suggestions">
+                    {nearbySuggestions.map(ranking => (
+                      <button
+                        key={ranking.spotId}
+                        type="button"
+                        role="option"
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => {
+                          setForm(f => ({
+                            ...f,
+                            spotName: ranking.spotName,
+                            category: ranking.category || f.category,
+                          }));
+                          setSuggestionsOpen(false);
+                        }}
+                        style={suggestionButtonStyle}
+                      >
+                        <span style={{ fontWeight:600, color:'var(--clr-ink)' }}>{ranking.spotName}</span>
+                        <span style={{ fontSize:12, color:'var(--clr-ink-4)' }}>{ranking.category}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </FormGroup>
 
             {/* Category Pills */}
@@ -343,4 +437,28 @@ const uploadZoneStyle = {
   alignItems: 'center', gap: 8, textAlign: 'center', cursor: 'pointer',
   transition: 'border-color 120ms ease, background 120ms ease',
   position: 'relative',
+};
+
+const suggestionsStyle = {
+  marginTop: 8,
+  background: 'var(--clr-surface)',
+  border: '1px solid var(--clr-paper-3)',
+  borderRadius: 'var(--r-lg)',
+  boxShadow: 'var(--sh-sm)',
+  overflow: 'hidden',
+};
+
+const suggestionButtonStyle = {
+  width: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  padding: '10px 12px',
+  background: 'transparent',
+  border: 'none',
+  borderBottom: '1px solid var(--clr-paper-2)',
+  cursor: 'pointer',
+  textAlign: 'left',
+  fontFamily: 'var(--font-body)',
 };
