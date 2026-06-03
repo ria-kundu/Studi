@@ -1,6 +1,9 @@
+import { randomUUID } from "node:crypto";
+
 import { admin, db } from "../config/firebaseAdmin.js";
+import { bucket } from "../config/firebaseAdmin.js";
 import { HttpError } from "../middleware/errorHandler.js";
-import type { CreateCommentInput, CreateRankingInput } from "../schemas/rankingSchemas.js";
+import type { CreateCommentInput, CreateRankingInput, UpdateRankingInput } from "../schemas/rankingSchemas.js";
 import type { PreferredCategory } from "../schemas/userSchemas.js";
 import { getUserProfile, serializeUserProfile, type UserProfile, type UserProfileResponse } from "./userService.js";
 
@@ -10,11 +13,19 @@ interface RankingRecord extends Omit<CreateRankingInput, "media"> {
   id: string;
   userId: string;
   spotId: string;
-  media: Array<{ type: "image" | "video"; emoji: string }>;
+  media: RankingMedia[];
   overallScore: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+type RankingMedia = {
+  type: "image" | "video";
+  emoji: string;
+  url?: string;
+  name?: string;
+  path?: string;
+};
 
 interface CommentRecord {
   id: string;
@@ -53,7 +64,7 @@ export interface RankingResponse {
   longitude?: number;
   hours: string;
   notes: string;
-  media: Array<{ type: "image" | "video"; emoji: string }>;
+  media: RankingMedia[];
   overallScore: number;
   timestamp: string;
   createdAt: string | null;
@@ -275,6 +286,39 @@ export async function listFeedRankings(limit = 50): Promise<RankingResponse[]> {
   return Promise.all(snapshot.docs.map((doc) => serializeRanking(doc.data() as RankingRecord)));
 }
 
+export async function uploadRankingMedia(uid: string, files: Express.Multer.File[] = []): Promise<RankingMedia[]> {
+  if (files.length === 0) {
+    return [];
+  }
+
+  return Promise.all(
+    files.map(async (file) => {
+      const type = file.mimetype.startsWith("video/") ? "video" : "image";
+      const token = randomUUID();
+      const extension = file.originalname.includes(".") ? file.originalname.split(".").pop() : undefined;
+      const path = `rankings/${uid}/${Date.now()}-${randomUUID()}${extension ? `.${extension}` : ""}`;
+      const storageFile = bucket.file(path);
+
+      await storageFile.save(file.buffer, {
+        contentType: file.mimetype,
+        metadata: {
+          metadata: {
+            firebaseStorageDownloadTokens: token
+          }
+        }
+      });
+
+      return {
+        type,
+        emoji: type === "video" ? "🎥" : "🖼️",
+        url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`,
+        name: file.originalname,
+        path
+      };
+    })
+  );
+}
+
 export async function listNearbyRankings(options: NearbyRankingsOptions): Promise<RankingResponse[]> {
   const safeLimit = Math.min(Math.max(options.limit ?? 50, 1), 100);
   const snapshot = await rankingsCollection().orderBy("createdAt", "desc").limit(250).get();
@@ -344,6 +388,55 @@ export async function createRanking(uid: string, input: CreateRankingInput): Pro
 
   const created = await rankingRef.get();
   return serializeRanking(created.data() as RankingRecord);
+}
+
+export async function updateRanking(
+  uid: string,
+  rankingId: string,
+  input: UpdateRankingInput
+): Promise<RankingResponse> {
+  await requireUserProfile(uid);
+
+  const rankingRef = rankingsCollection().doc(rankingId);
+  const snapshot = await rankingRef.get();
+
+  if (!snapshot.exists) {
+    throw new HttpError(404, "Ranking not found.");
+  }
+
+  const existing = snapshot.data() as RankingRecord;
+  if (existing.userId !== uid) {
+    throw new HttpError(403, "You can only update your own ranking.");
+  }
+
+  const score = overallScore({
+    quietness: input.quietness,
+    restroom: input.restroom,
+    wifi: input.wifi,
+    outlets: input.outlets,
+    crowdness: input.crowdness,
+    seating: input.seating
+  });
+
+  await rankingRef.set(
+    {
+      quietness: input.quietness,
+      restroom: input.restroom,
+      wifi: input.wifi,
+      outlets: input.outlets,
+      crowdness: input.crowdness,
+      seating: input.seating,
+      media: input.media,
+      overallScore: score,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  await refreshSpotStats(existing.spotId);
+
+  const updated = await rankingRef.get();
+  return serializeRanking(updated.data() as RankingRecord);
 }
 
 export async function addComment(

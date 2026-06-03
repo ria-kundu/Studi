@@ -8,7 +8,10 @@ const scoreSchema = z.number().int().min(1).max(5);
 const mediaSchema = z
   .object({
     type: z.enum(["image", "video"]),
-    emoji: z.string().trim().min(1).max(8).default("📍")
+    emoji: z.string().trim().min(1).max(8).default("📍"),
+    url: z.string().trim().url().optional(),
+    name: z.string().trim().max(160).optional(),
+    path: z.string().trim().max(300).optional()
   })
   .strict();
 
@@ -57,5 +60,18 @@ export const createCommentSchema = z
   })
   .strict();
 
+export const updateRankingSchema = z
+  .object({
+    quietness: scoreSchema,
+    restroom: scoreSchema,
+    wifi: scoreSchema,
+    outlets: scoreSchema,
+    crowdness: scoreSchema,
+    seating: scoreSchema,
+    media: z.array(mediaSchema).max(8, "media can include at most 8 items.").optional().default([])
+  })
+  .strict();
+
 export type CreateRankingInput = z.infer<typeof createRankingSchema>;
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;
+export type UpdateRankingInput = z.infer<typeof updateRankingSchema>;
