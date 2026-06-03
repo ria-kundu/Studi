@@ -1,0 +1,23 @@
+{
+    "name": "StudySpot",
+    "short_name": "StudySpot",
+    "description": "Find, rank, and review study spots near you.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f7f5f0",
+    "theme_color": "#2f5cff",
+    "icons": [
+      {
+        "src": "/icons/icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/icons/icon-512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ],
+    "scope": "/",
+    "orientation": "portrait"
+  }

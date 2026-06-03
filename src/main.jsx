@@ -8,3 +8,9 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>
 )
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+  .then(reg => console.log('Registered:', reg.scope))
+  .catch(err => console.log('Failed:', err));
+  }
