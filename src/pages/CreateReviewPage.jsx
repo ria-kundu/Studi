@@ -5,6 +5,7 @@ import { useToast } from '../App.jsx';
 import { apiFormRequest, apiRequest } from '../api/client.js';
 import { CATEGORIES, RATING_FIELDS } from '../data/mock.js';
 import { BackLink, Btn, FormGroup, Label, TextInput, Textarea } from '../components/ui.jsx';
+import { getCurrentPosition } from '../utils/location.js';
 
 const DEFAULT_FORM = {
   spotName:  '',
@@ -26,22 +27,6 @@ const CAT_EMOJI = {
   Outdoors:  '🌿',
   Other:     '📍',
 };
-
-function getCurrentPosition() {
-  if (!navigator.geolocation) {
-    return Promise.resolve(null);
-  }
-
-  return new Promise(resolve => {
-    navigator.geolocation.getCurrentPosition(
-      position => resolve({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      }),
-      () => resolve(null),
-    );
-  });
-}
 
 export default function CreateReviewPage() {
   const { back, navigate } = useRouter();

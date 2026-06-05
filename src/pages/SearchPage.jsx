@@ -3,8 +3,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from '../App.jsx';
 import { apiRequest } from '../api/client.js';
 import { mapSpot } from '../api/mappers.js';
-import { CHATBOT_RESPONSES } from '../data/mock.js';
 import { Badge, Stars, Divider, LoadingDots } from '../components/ui.jsx';
+import { getCurrentPosition } from '../utils/location.js';
 
 export default function SearchPage() {
   const { navigate } = useRouter();
@@ -14,7 +14,7 @@ export default function SearchPage() {
   const [searchError, setSearchError] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages]   = useState([
-    { role: 'assistant', text: 'Hi! Ask me for study spot recommendations based on your past ratings. Try: "I want somewhere quiet with good wifi"' },
+    { role: 'assistant', text: 'Hi! Ask me for study spot recommendations based on your past ratings. Try: "I want somewhere quiet with good wifi near me"' },
   ]);
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef(null);
@@ -43,21 +43,97 @@ export default function SearchPage() {
     }
   }
 
-  function handleChat(e) {
-    e.preventDefault();
-    const text = chatInput.trim();
-    if (!text) return;
-    setChatInput('');
-    setMessages(prev => [...prev, { role: 'user', text }]);
-    setChatLoading(true);
-    // TODO: POST /api/recommendations/chat { userId: CURRENT_USER.id, message: text, history: messages }
-    // Backend fetches user's past rankings and passes them as LLM context for personalized suggestions.
-    setTimeout(() => {
-      const reply = CHATBOT_RESPONSES[Math.floor(Math.random() * CHATBOT_RESPONSES.length)];
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
-      setChatLoading(false);
-    }, 900);
+function getChatSearchMode(message) {
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes('all places') ||
+    normalized.includes('all spots') ||
+    normalized.includes('everywhere') ||
+    normalized.includes('show all') ||
+    normalized.includes('list all')
+  ) {
+    return {
+      searchMode: 'all',
+      radiusMeters: undefined,
+    };
   }
+
+  if (
+    normalized.includes('around campus') ||
+    normalized.includes('on campus') ||
+    normalized.includes('campus-wide') ||
+    normalized.includes('campus wide')
+  ) {
+    return {
+      searchMode: 'campus',
+      radiusMeters: 5000,
+    };
+  }
+
+  return {
+    searchMode: 'nearby',
+    radiusMeters: 1600,
+  };
+}
+
+ async function handleChat(e) {
+  e.preventDefault();
+
+  const text = chatInput.trim();
+  if (!text || chatLoading) return;
+
+  setChatInput('');
+  setMessages(prev => [...prev, { role: 'user', text }]);
+  setChatLoading(true);
+  
+  try {
+    const location = await getCurrentPosition();
+
+    const history = messages
+      .slice(-8)
+      .map(msg => ({
+        role: msg.role,
+        text: msg.text,
+      }));
+
+    const searchMode = getChatSearchMode(text);
+
+    const data = await apiRequest('/chat', {
+      method: 'POST',
+      body: {
+        message: text,
+        history,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+        searchMode: searchMode.searchMode,
+        radiusMeters: searchMode.radiusMeters,
+      },
+    });
+
+    setMessages(prev => [
+      ...prev,
+      {
+        role: 'assistant',
+        text: data.reply || 'I could not generate a recommendation.',
+      },
+    ]);
+  } catch (err) {
+    console.error(err);
+
+    setMessages(prev => [
+      ...prev,
+      {
+        role: 'assistant',
+        text: err instanceof Error
+          ? err.message
+          : 'Sorry, I could not connect to the AI assistant right now.',
+      },
+    ]);
+  } finally {
+    setChatLoading(false);
+  }
+}
 
   // Render **bold** markdown in chat
   function renderChatText(text) {
