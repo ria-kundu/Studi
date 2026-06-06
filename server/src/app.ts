@@ -5,6 +5,7 @@ import { configureSecurityMiddleware, apiRateLimiter } from "./middleware/securi
 import authRoutes from "./routes/authRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import rankingRoutes from "./routes/rankingRoutes.js";
 import spotRoutes from "./routes/spotRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -19,6 +20,7 @@ app.use("/api", apiRateLimiter);
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/rankings", rankingRoutes);
 app.use("/api/spots", spotRoutes);
 app.use("/api/users", userRoutes);
