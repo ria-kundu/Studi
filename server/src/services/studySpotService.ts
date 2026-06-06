@@ -3,6 +3,7 @@ import { admin, db } from "../config/firebaseAdmin.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import type { CreateCommentInput, CreateRankingInput, UpdateRankingInput } from "../schemas/rankingSchemas.js";
 import type { PreferredCategory } from "../schemas/userSchemas.js";
+import { notifyUsers } from "./notificationService.js";
 import { getUserProfile, serializeUserProfile, type UserProfile, type UserProfileResponse } from "./userService.js";
 
 type Timestamp = FirebaseFirestore.Timestamp;
@@ -283,6 +284,34 @@ async function refreshSpotStats(spotId: string): Promise<void> {
   );
 }
 
+async function notifyFollowersWhoRankedSameSpot(newRanking: RankingRecord, author: UserProfile): Promise<void> {
+  const rankings = await rankingsForSpot(newRanking.spotId);
+  const candidateUserIds = Array.from(
+    new Set(
+      rankings
+        .map((ranking) => ranking.userId)
+        .filter((userId) => userId !== newRanking.userId)
+    )
+  );
+
+  const notifyUserIds: string[] = [];
+
+  for (const userId of candidateUserIds) {
+    const profile = await getUserProfile(userId);
+    if (profile?.following?.includes(newRanking.userId)) {
+      notifyUserIds.push(userId);
+    }
+  }
+
+  notifyUsers(notifyUserIds, {
+    title: "New ranking from someone you follow",
+    message: `${author.displayName} ranked ${newRanking.spotName}, a spot you reviewed.`,
+    spotId: newRanking.spotId,
+    spotName: newRanking.spotName,
+    rankingId: newRanking.id
+  });
+}
+
 export async function listFeedRankings(limit = 50): Promise<RankingResponse[]> {
   const safeLimit = Math.min(Math.max(limit, 1), 100);
   const snapshot = await rankingsCollection().orderBy("createdAt", "desc").limit(safeLimit).get();
@@ -354,7 +383,7 @@ export async function listNearbyRankings(options: NearbyRankingsOptions): Promis
 }
 
 export async function createRanking(uid: string, input: CreateRankingInput): Promise<RankingResponse> {
-  await requireUserProfile(uid);
+  const author = await requireUserProfile(uid);
 
   const now = admin.firestore.FieldValue.serverTimestamp();
   const rankingRef = rankingsCollection().doc();
@@ -402,7 +431,9 @@ export async function createRanking(uid: string, input: CreateRankingInput): Pro
   await refreshSpotStats(spotId);
 
   const created = await rankingRef.get();
-  return serializeRanking(created.data() as RankingRecord);
+  const createdRanking = created.data() as RankingRecord;
+  await notifyFollowersWhoRankedSameSpot(createdRanking, author);
+  return serializeRanking(createdRanking);
 }
 
 export async function updateRanking(

@@ -11,6 +11,19 @@ export default function FeedPage() {
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [online, setOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const updateOnlineStatus = () => setOnline(navigator.onLine);
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -75,12 +88,24 @@ export default function FeedPage() {
       {/* Rankings */}
       <section aria-label="Recent study spot rankings">
         {loading && (
-          <div style={{ display:'flex', justifyContent:'center', padding:'32px 0' }}>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
+            justifyContent:'center', gap:12, padding:'32px 0' }}>
             <LoadingDots />
+            {!online && (
+              <p style={{ fontSize:13, color:'var(--clr-ink-4)', textAlign:'center' }}>
+                You are offline. We are trying to fetch the latest ranking data.
+              </p>
+            )}
           </div>
         )}
         {!loading && error && (
-          <EmptyState icon="!" title="Unable to load rankings" subtitle={error} />
+          <EmptyState
+            icon="!"
+            title="Unable to load rankings"
+            subtitle={!online
+              ? 'You are offline. The app layout is available while we try to fetch the data.'
+              : error}
+          />
         )}
         {!loading && !error && rankings.length === 0 && (
           <EmptyState

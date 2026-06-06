@@ -1,7 +1,7 @@
 // src/App.jsx
 import { useState, useCallback, createContext, useContext, useEffect } from 'react';
-import { apiRequest } from './api/client.js';
-import { clearStoredSession, getStoredSession, loginWithEmail, signUpWithEmail } from './api/auth.js';
+import { API_BASE_URL, apiRequest } from './api/client.js';
+import { clearStoredSession, getStoredSession, getValidIdToken, loginWithEmail, signUpWithEmail } from './api/auth.js';
 import { mapUser } from './api/mappers.js';
 import NavBar from './components/NavBar.jsx';
 import Toast from './components/Toast.jsx';
@@ -100,6 +100,40 @@ export default function App() {
     setToasts(t => [...t, { id, message }]);
     setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3200);
   }, []);
+
+  useEffect(() => {
+    if (authStatus !== 'signedIn') {
+      return undefined;
+    }
+
+    let events;
+    let active = true;
+
+    async function connectNotifications() {
+      const token = await getValidIdToken();
+      if (!active || !token) return;
+
+      events = new EventSource(`${API_BASE_URL}/notifications/stream?token=${encodeURIComponent(token)}`);
+      events.addEventListener('notification', event => {
+        try {
+          const data = JSON.parse(event.data);
+          showToast(data.message || data.title || 'New StudySpot notification');
+        } catch {
+          showToast('New StudySpot notification');
+        }
+      });
+      events.onerror = () => {
+        events?.close();
+      };
+    }
+
+    connectNotifications();
+
+    return () => {
+      active = false;
+      events?.close();
+    };
+  }, [authStatus, showToast]);
 
   const login = useCallback(async ({ email, password }) => {
     await loginWithEmail(email, password);
