@@ -10,6 +10,8 @@ export interface UserProfile {
   photoURL: string | null;
   bio: string;
   preferredCategories: PreferredCategory[];
+  followers: string[];
+  following: string[];
   createdAt: FirebaseFirestore.Timestamp;
   updatedAt: FirebaseFirestore.Timestamp;
 }
@@ -21,6 +23,10 @@ export interface UserProfileResponse {
   photoURL: string | null;
   bio: string;
   preferredCategories: PreferredCategory[];
+  followers: string[];
+  following: string[];
+  followerCount: number;
+  followingCount: number;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -44,6 +50,9 @@ function fallbackDisplayName(authUser: Express.AuthenticatedUser): string {
 }
 
 export function serializeUserProfile(profile: UserProfile): UserProfileResponse {
+  const followers = profile.followers ?? [];
+  const following = profile.following ?? [];
+
   return {
     uid: profile.uid,
     email: profile.email,
@@ -51,6 +60,10 @@ export function serializeUserProfile(profile: UserProfile): UserProfileResponse 
     photoURL: profile.photoURL,
     bio: profile.bio,
     preferredCategories: profile.preferredCategories,
+    followers,
+    following,
+    followerCount: followers.length,
+    followingCount: following.length,
     createdAt: timestampToIso(profile.createdAt),
     updatedAt: timestampToIso(profile.updatedAt)
   };
@@ -79,6 +92,8 @@ export async function createOrUpdateUserFromAuth(authUser: Express.Authenticated
       photoURL: authUser.picture ?? null,
       bio: "",
       preferredCategories: [],
+      followers: [],
+      following: [],
       createdAt: now,
       updatedAt: now
     });
@@ -135,4 +150,146 @@ export async function updateCurrentUserProfile(
 
   const updatedSnapshot = await ref.get();
   return updatedSnapshot.data() as UserProfile;
+}
+
+export async function followUser(currentUserId: string, targetUserId: string): Promise<{
+  followerCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+}> {
+  if (currentUserId === targetUserId) {
+    throw new HttpError(400, "You cannot follow yourself.");
+  }
+
+  const currentUserRef = userDocument(currentUserId);
+  const targetUserRef = userDocument(targetUserId);
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  await db.runTransaction(async transaction => {
+    const [currentSnapshot, targetSnapshot] = await Promise.all([
+      transaction.get(currentUserRef),
+      transaction.get(targetUserRef)
+    ]);
+
+    if (!currentSnapshot.exists) {
+      throw new HttpError(404, "Current user profile not found.");
+    }
+
+    if (!targetSnapshot.exists) {
+      throw new HttpError(404, "Target user profile not found.");
+    }
+
+    transaction.update(currentUserRef, {
+      following: admin.firestore.FieldValue.arrayUnion(targetUserId),
+      updatedAt: now
+    });
+
+    transaction.update(targetUserRef, {
+      followers: admin.firestore.FieldValue.arrayUnion(currentUserId),
+      updatedAt: now
+    });
+  });
+
+  const [currentSnapshot, targetSnapshot] = await Promise.all([
+    currentUserRef.get(),
+    targetUserRef.get()
+  ]);
+
+  const currentProfile = currentSnapshot.data() as UserProfile;
+  const targetProfile = targetSnapshot.data() as UserProfile;
+
+  return {
+    followerCount: (targetProfile.followers ?? []).length,
+    followingCount: (currentProfile.following ?? []).length,
+    isFollowing: true
+  };
+}
+
+export async function unfollowUser(currentUserId: string, targetUserId: string): Promise<{
+  followerCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+}> {
+  if (currentUserId === targetUserId) {
+    throw new HttpError(400, "You cannot unfollow yourself.");
+  }
+
+  const currentUserRef = userDocument(currentUserId);
+  const targetUserRef = userDocument(targetUserId);
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  await db.runTransaction(async transaction => {
+    const [currentSnapshot, targetSnapshot] = await Promise.all([
+      transaction.get(currentUserRef),
+      transaction.get(targetUserRef)
+    ]);
+
+    if (!currentSnapshot.exists) {
+      throw new HttpError(404, "Current user profile not found.");
+    }
+
+    if (!targetSnapshot.exists) {
+      throw new HttpError(404, "Target user profile not found.");
+    }
+
+    transaction.update(currentUserRef, {
+      following: admin.firestore.FieldValue.arrayRemove(targetUserId),
+      updatedAt: now
+    });
+
+    transaction.update(targetUserRef, {
+      followers: admin.firestore.FieldValue.arrayRemove(currentUserId),
+      updatedAt: now
+    });
+  });
+
+  const [currentSnapshot, targetSnapshot] = await Promise.all([
+    currentUserRef.get(),
+    targetUserRef.get()
+  ]);
+
+  const currentProfile = currentSnapshot.data() as UserProfile;
+  const targetProfile = targetSnapshot.data() as UserProfile;
+
+  return {
+    followerCount: (targetProfile.followers ?? []).length,
+    followingCount: (currentProfile.following ?? []).length,
+    isFollowing: false
+  };
+}
+
+export async function listFollowers(userId: string): Promise<UserProfileResponse[]> {
+  const profile = await getUserProfile(userId);
+
+  if (!profile) {
+    throw new HttpError(404, "User profile not found.");
+  }
+
+  const followerIds = profile.followers ?? [];
+
+  const followers = await Promise.all(
+    followerIds.map(async uid => getUserProfile(uid))
+  );
+
+  return followers
+    .filter((user): user is UserProfile => Boolean(user))
+    .map(serializeUserProfile);
+}
+
+export async function listFollowing(userId: string): Promise<UserProfileResponse[]> {
+  const profile = await getUserProfile(userId);
+
+  if (!profile) {
+    throw new HttpError(404, "User profile not found.");
+  }
+
+  const followingIds = profile.following ?? [];
+
+  const following = await Promise.all(
+    followingIds.map(async uid => getUserProfile(uid))
+  );
+
+  return following
+    .filter((user): user is UserProfile => Boolean(user))
+    .map(serializeUserProfile);
 }

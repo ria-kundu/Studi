@@ -25,6 +25,10 @@ export function mapUser(user) {
     photoURL: user.photoURL,
     bio: user.bio || '',
     preferredCategories: user.preferredCategories || [],
+    followers: user.followers || [],
+    following: user.following || [],
+    followerCount: Number(user.followerCount || user.followers?.length || 0),
+    followingCount: Number(user.followingCount || user.following?.length || 0),
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

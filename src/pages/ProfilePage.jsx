@@ -19,7 +19,9 @@ import {
 
 export default function ProfilePage({ userId, isOwn }) {
   const { back, navigate } = useRouter();
-  const { updateCurrentUser } = useAuth();
+  const { currentUser, updateCurrentUser } = useAuth();
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followError, setFollowError] = useState('');
   const [user, setUser] = useState(null);
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +94,44 @@ export default function ProfilePage({ userId, isOwn }) {
     }
   }
 
+  async function handleFollowToggle() {
+  if (!user || isOwn || followLoading) return;
+
+  setFollowError('');
+  setFollowLoading(true);
+
+  const isFollowing = user.followers?.includes(currentUser?.uid);
+
+  try {
+    const data = await apiRequest(`/users/${encodeURIComponent(user.id)}/follow`, {
+      method: isFollowing ? 'DELETE' : 'POST',
+    });
+
+    setUser(prev => {
+      if (!prev) return prev;
+
+      const currentUid = currentUser?.uid;
+      let followers = prev.followers || [];
+
+      if (currentUid) {
+        followers = data.isFollowing
+          ? Array.from(new Set([...followers, currentUid]))
+          : followers.filter(uid => uid !== currentUid);
+      }
+
+      return {
+        ...prev,
+        followers,
+        followerCount: data.followerCount,
+      };
+    });
+  } catch (err) {
+    setFollowError(err instanceof Error ? err.message : 'Unable to update follow status.');
+  } finally {
+    setFollowLoading(false);
+  }
+}
+
   if (loading) {
     return (
       <main id="main-content" style={containerStyle}>
@@ -130,13 +170,33 @@ export default function ProfilePage({ userId, isOwn }) {
               </p>
             )}
           </div>
-          {isOwn && (
+          {isOwn ? (
             <Btn variant="ghost" size="sm" ariaLabel="Edit your profile"
               onClick={() => setEditing(v => !v)}>
               {editing ? 'Close' : 'Edit'}
             </Btn>
+          ) : (
+            <Btn
+              variant={user.followers?.includes(currentUser?.uid) ? 'ghost' : 'primary'}
+              size="sm"
+              ariaLabel={user.followers?.includes(currentUser?.uid) ? `Unfollow ${user.name}` : `Follow ${user.name}`}
+              onClick={handleFollowToggle}
+              disabled={followLoading}
+            >
+              {followLoading
+                ? 'Updating...'
+                : user.followers?.includes(currentUser?.uid)
+                  ? 'Following'
+                  : 'Follow'}
+            </Btn>
           )}
         </div>
+
+        {followError && (
+          <p role="alert" style={{ color:'var(--clr-danger)', fontSize:13, marginTop:12 }}>
+            {followError}
+          </p>
+        )}
 
         {isOwn && editing && (
           <form onSubmit={handleProfileSave}
@@ -174,9 +234,9 @@ export default function ProfilePage({ userId, isOwn }) {
         {/* Stats */}
         <div style={{ display:'flex', gap:32, marginTop:20,
           paddingTop:20, borderTop:'1px solid var(--clr-paper-2)' }}>
-          <StatItem value={rankings.length} label="Rankings" />
-          <StatItem value="—" label="Followers" />
-          <StatItem value="—" label="Following" />
+            <StatItem value={rankings.length} label="Rankings" />
+            <StatItem value={user.followerCount ?? 0} label="Followers" />
+            <StatItem value={user.followingCount ?? 0} label="Following" />
         </div>
       </section>
 
